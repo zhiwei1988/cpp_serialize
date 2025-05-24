@@ -1,0 +1,57 @@
+# 基础风格，可以是 LLVM, Google, Chromium, Mozilla, WebKit, Microsoft 等
+BasedOnStyle: LLVM
+
+# 缩进相关
+IndentWidth: 4               # 每层缩进使用 4 个空格
+TabWidth: 4                  # tab 显示为 4 个空格宽
+UseTab: Never                # 永远使用空格而不是 tab
+
+# 大括号相关
+BraceWrapping:
+  AfterClass: true               # 类定义后换行放大括号
+  AfterStruct: true              # struct 定义后换行放大括号
+  AfterControlStatement: false   # if/for/while 后换行放大括号
+  AfterFunction: true            # 函数定义后换行放大括号
+  AfterNamespace: true           # namespace 后换行放大括号
+  BeforeCatch: true              # catch 前换行
+  BeforeElse: true               # else 前换行
+
+# 控制换行的列宽限制
+ColumnLimit: 100             # 超过 100 列的行会自动换行
+
+# 函数参数对齐
+AlignAfterOpenBracket: Align # 多行参数对齐到第一个参数位置
+
+# 函数调用参数换行策略
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# 控制空格
+SpaceBeforeParens: ControlStatements # if/for/while 后加空格，函数调用不加
+SpacesInParentheses: false         # 括号内不加空格
+SpacesInSquareBrackets: false      # [] 内不加空格
+SpaceInEmptyParentheses: false     # 空括号中不加空格
+
+# 是否允许一行 if 语句
+AllowShortIfStatementsOnASingleLine: false
+
+# 换行策略
+BreakBeforeBraces: Allman          # 所有大括号都另起一行（像 BSD 样式）
+
+# 命名空间内代码缩进
+IndentNamespace: true              # namespace 中的代码也要缩进
+
+# 自定义注释格式
+CommentPragmas: '^ IWYU pragma:'   # 保留特定注释风格（比如 IWYU 工具）
+
+# 指针与引用的绑定风格
+DerivePointerAlignment: false      # 不自动推导指针风格
+PointerAlignment: Left             # `int* p` 而不是 `int *p`
+
+# 换行前是否插入空行
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# 错误恢复
+SortIncludes: false                # 不自动排序 #include 语句（保持你自己的顺序）
+
+# 用于兼容较老的 clang-format
+Language: Cpp

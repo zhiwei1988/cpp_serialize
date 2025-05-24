@@ -25,11 +25,10 @@ private:
         // 检查 U 是否可以通过 n 个参数构造
         // 如果可以，则返回 std::true_type
         template <typename U, std::size_t... is>
-        static auto Check(std::index_sequence<is...>) -> decltype(U{ any(is)... }, std::true_type{});
+        static auto Check(std::index_sequence<is...>) -> decltype(U{any(is)...}, std::true_type{});
 
         // 如果不能通过 n 个参数构造，则返回 std::false_type
-        template <typename U>
-        static auto Check(...) -> std::false_type;
+        template <typename U> static auto Check(...) -> std::false_type;
 
         // 返回检查结果
         static constexpr bool result = decltype(Check<T>(std::make_index_sequence<n>{}))::value;
