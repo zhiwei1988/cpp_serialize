@@ -51,6 +51,23 @@
                 "build"
             ],
             "group": "build"
+        },
+        {
+            "label": "Run All Tests",
+            "type": "shell",
+            "command": "ctest",
+            "args": ["--verbose", "--output-on-failure"],
+            "options": {
+                "cwd": "${workspaceFolder}/build/test"
+            },
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ]
 } 
