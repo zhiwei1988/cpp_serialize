@@ -31,10 +31,6 @@ template <> inline int& std::get<1>(Person & obj) { return obj.age; }
 template <> inline double& std::get<2>(Person & obj) { return obj.height; }
 #endif
 
-DEFINE_STRUCT_WITH_TUPLE_INTERFACE(Person, (std::string, name), (int, age), (double, height))
-
-Person p{"张三", 25, 1.75};
-
 int main() {
     std::cout << csrl::FieldsCounts<Test> << std::endl;
     std::get<0>(p);
