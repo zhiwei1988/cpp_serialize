@@ -4,8 +4,6 @@
 #include <string>
 #include <type_traits>
 
-// 使用宏定义一个具有元组接口的结构体
-DEFINE_STRUCT_WITH_TUPLE_INTERFACE(Person, (std::string, name), (int, age), (double, height))
 
 // 测试结构体定义和元组接口
 TEST(TupleInterfaceTest, BasicStructDefinition)
@@ -27,6 +25,7 @@ TEST(TupleInterfaceTest, BasicStructDefinition)
 }
 
 #if 0
+
 // 测试 bind_to_tuple 功能
 TEST(BindToTupleTest, TupleView)
 {

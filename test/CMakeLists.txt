@@ -24,7 +24,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 # 添加测试可执行文件
-add_executable(test_tuple_interface test_tuple_interface.cpp)
+add_executable(test_tuple_interface test_tuple_interface.cpp test_type_traits.cpp)
 
 target_include_directories(test_tuple_interface PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
