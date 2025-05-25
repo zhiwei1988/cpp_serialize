@@ -24,12 +24,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 # 添加测试可执行文件
-add_executable(test_tuple_interface test_tuple_interface.cpp test_type_traits.cpp)
+add_executable(test_cpp_serialize test_tuple_interface.cpp test_type_traits.cpp test_string_literal.cpp)
 
-target_include_directories(test_tuple_interface PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(test_cpp_serialize PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 # 链接 GTest 库
-target_link_libraries(test_tuple_interface gtest gtest_main)
+target_link_libraries(test_cpp_serialize gtest gtest_main)
 
 # 添加测试
-add_test(NAME test_tuple_interface COMMAND test_tuple_interface)
+add_test(NAME test_all COMMAND test_cpp_serialize)
