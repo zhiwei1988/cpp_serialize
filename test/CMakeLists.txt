@@ -24,7 +24,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 # 添加测试可执行文件
-add_executable(test_cpp_serialize test_tuple_interface.cpp test_type_traits.cpp test_string_literal.cpp)
+add_executable(test_cpp_serialize test_tuple_interface.cpp test_type_traits.cpp test_string_literal.cpp test_field_access.cpp)
 
 target_include_directories(test_cpp_serialize PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
