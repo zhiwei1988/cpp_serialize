@@ -60,7 +60,6 @@ struct SingleFieldConverter {
         constexpr std::size_t srcIndex = FieldMapType::srcIndex;
         constexpr std::size_t dstIndex = FieldMapType::dstIndex;
 
-        // 使用自定义转换器
         fieldMap.Convert(GetField<srcIndex>(src), GetField<dstIndex>(dst));
     }
 };
