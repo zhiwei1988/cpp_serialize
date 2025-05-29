@@ -23,7 +23,7 @@ struct FieldMapping<SrcIdx, DstIdx, void>
 
     // 默认转换器
     template <typename SrcType, typename DstType> 
-    static void Convert(const SrcType& src, DstType& dst)
+    static void Convert(SrcType& src, DstType& dst)
     {
         dst = static_cast<DstType>(src);
     }
@@ -37,7 +37,7 @@ struct CustomFieldMapping : FieldMapping<SrcIdx, DstIdx, Func>
     explicit CustomFieldMapping(Func f) : converter(std::move(f)) {}
 
     template <typename SrcType, typename DstType> 
-    void Convert(const SrcType& src, DstType& dst) const
+    void Convert(SrcType& src, DstType& dst) const
     {
         converter(src, dst);
     }

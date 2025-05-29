@@ -4,9 +4,6 @@
 #include <type_traits>
 #include "define_tuple_interface.h"
 
-// 使用宏定义一个具有元组接口的结构体
-DEFINE_STRUCT_WITH_TUPLE_INTERFACE(Person, (std::string, name), (int, age), (double, height))
-
 namespace csrl {
 // 辅助函数模板，使用索引序列来构建指针元组
 // T 是要查看的对象的类型，Is 是索引序列 0, 1, ..., N-1

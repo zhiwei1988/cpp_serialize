@@ -2,8 +2,8 @@
 
 #include <tuple>
 #include <string>
-#include <utility> // For std::integral_constant, std::move
-#include <cstddef> // For std::size_t
+#include <utility> 
+#include <cstddef> 
 
 // 连接两个预处理器符号
 #define PP_CAT(A, B) PP_CAT_I(A, B)
@@ -47,21 +47,26 @@
         using type = FIELD_TYPE(FIELD_PAIR);                                                                           \
     };
 
+// 重要：为表达式添加括号，可以保证返回的值是左值引用 
 // 生成 get<I> 函数模板特化
 #define GEN_GET_FUNCTION_SPEC(INDEX, STRUCT_NAME, FIELD_PAIR)                                                          \
     template <> inline decltype(auto) get<INDEX>(STRUCT_NAME & s)                                   \
     {                                                                                                                  \
-        return s.FIELD_NAME(FIELD_PAIR);                                                                               \
+        return (s.FIELD_NAME(FIELD_PAIR));                                                                               \
     }
 
-// 主宏：定义结构体并为其实现元组接口
+namespace std {
+    template<std::size_t n, typename T>
+    decltype(auto) get(T& obj);
+}
+
+// 定义结构体并为其实现元组接口
 #define DEFINE_STRUCT_WITH_TUPLE_INTERFACE(STRUCT_NAME, ...)                                                           \
     struct STRUCT_NAME                                                                                                 \
     {                                                                                                                  \
         EXPAND_ARGS_AS_FOR_EACH(STRUCT_NAME, GEN_STRUCT_MEMBER, __VA_ARGS__)                                           \
     };                                                                                                                 \
     namespace std {                                                                                                    \
-        template<std::size_t n, typename T> decltype(auto) get(T& obj);                                                    \
         template <> struct tuple_size<STRUCT_NAME> : public std::integral_constant<std::size_t, PP_NARG(__VA_ARGS__)> {};\
         EXPAND_ARGS_AS_FOR_EACH(STRUCT_NAME, GEN_TUPLE_ELEMENT_SPEC, __VA_ARGS__)                                          \
         EXPAND_ARGS_AS_FOR_EACH(STRUCT_NAME, GEN_GET_FUNCTION_SPEC, __VA_ARGS__) \

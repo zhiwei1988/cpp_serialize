@@ -4,6 +4,7 @@
 #include <string>
 #include <type_traits>
 
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(Person, (std::string, name), (int, age), (double, height))
 
 // 测试结构体定义和元组接口
 TEST(TupleInterfaceTest, BasicStructDefinition)
