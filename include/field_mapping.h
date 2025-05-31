@@ -81,28 +81,28 @@ struct MappingRuleTuple
 
 // 创建默认字段映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx>
-constexpr auto MakeFieldMappingRule()
+auto MakeFieldMappingRule()
 {
     return FieldMappingRule<SrcIdx, DstIdx>{};
 }
 
 // 创建带自定义转换器的字段映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx, typename Func>
-constexpr auto MakeFieldMappingCustomRule(Func&& converter)
+auto MakeFieldMappingCustomRule(Func&& converter)
 {
     return FieldMappingCustomRule<SrcIdx, DstIdx, std::decay_t<Func>>(std::forward<Func>(converter));
 }
 
 // 创建结构体类型字段映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
-constexpr auto MakeStructFieldMappingRule(RuleTuple&& ruleTuple)
+auto MakeStructFieldMappingRule(RuleTuple&& ruleTuple)
 {
     return StructFieldMappingRule<SrcIdx, DstIdx, std::decay_t<RuleTuple>>(std::forward<RuleTuple>(ruleTuple));
 }
 
 // 创建映射规则集合
 template <typename... MappingsRules>
-constexpr auto MakeMappingRuleTuple(MappingsRules&&... mappingsRules)
+auto MakeMappingRuleTuple(MappingsRules&&... mappingsRules)
 {
     return MappingRuleTuple<std::decay_t<MappingsRules>...>{std::forward<MappingsRules>(mappingsRules)...};
 }
