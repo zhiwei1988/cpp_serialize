@@ -53,9 +53,9 @@ int main() {
         })
     );
 
-    csrl::StructConverter<Source, Destination, decltype(mappingTuple2)>::Convert(src2, dst2, mappingTuple2);
+    csrl::StructFieldsConvert(src2, dst2, mappingTuple2);
     std::cout << "Custom converter result: " << dst2.val << " " << dst2.identifier << std::endl;
-    csrl::StructConverter<Source, Destination, decltype(mappingTuple)>::Convert(src, dst, mappingTuple);
+    csrl::StructFieldsConvert(src, dst, mappingTuple);
     std::cout << dst.val << " " << dst.identifier << std::endl;
     return 0;
 }
