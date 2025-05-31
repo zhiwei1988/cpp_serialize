@@ -45,7 +45,7 @@ TEST(FieldAccessTest, FieldType) {
 // 测试字段映射
 TEST(FieldMappingTest, DefaultFieldMapping) {
     // 创建默认映射
-    auto mapping = csrl::DefaultFieldMapping<0, 1>();
+    auto mapping = csrl::MakeFieldMappingRule<0, 1>();
     
     int src = 42;
     double dst = 0.0;
@@ -60,7 +60,7 @@ TEST(FieldMappingTest, CustomFieldMapping) {
         dst = std::stoi(src);
     };
     
-    auto mapping = csrl::FieldMappingWith<0, 1>(converter);
+    auto mapping = csrl::MakeFieldMappingCustomRule<0, 1>(converter);
     
     std::string src = "42";
     int dst = 0;

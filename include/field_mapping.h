@@ -8,15 +8,15 @@
 namespace csrl {
 
 template <std::size_t SrcIdx, std::size_t DstIdx, typename Converter = void> 
-struct FieldMapping {
+struct FieldMappingRule {
     static constexpr std::size_t srcIndex = SrcIdx;
     static constexpr std::size_t dstIndex = DstIdx;
     using ConverterType = Converter;
 };
 
-// 特化默认转换器（直接赋值）
+// 特化内置类型字段默认映射规则（直接赋值）
 template <std::size_t SrcIdx, std::size_t DstIdx> 
-struct FieldMapping<SrcIdx, DstIdx, void>
+struct FieldMappingRule<SrcIdx, DstIdx, void>
 {
     static constexpr std::size_t srcIndex = SrcIdx;
     static constexpr std::size_t dstIndex = DstIdx;
@@ -29,12 +29,13 @@ struct FieldMapping<SrcIdx, DstIdx, void>
     }
 };
 
+// 特化内置类型字段自定义映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx, typename Func>
-struct CustomFieldMapping : FieldMapping<SrcIdx, DstIdx, Func>
+struct FieldMappingCustomRule : FieldMappingRule<SrcIdx, DstIdx, Func>
 {
     Func converter;
 
-    explicit CustomFieldMapping(Func f) : converter(std::move(f)) {}
+    explicit FieldMappingCustomRule(Func f) : converter(std::move(f)) {}
 
     template <typename SrcType, typename DstType> 
     void Convert(SrcType& src, DstType& dst) const
@@ -43,15 +44,34 @@ struct CustomFieldMapping : FieldMapping<SrcIdx, DstIdx, Func>
     }
 };
 
-// 映射集合
-template <typename... FieldMappings> 
-struct FieldMappingTuple
+// 前向声明
+template <typename SrcStruct, typename DstStruct, typename MappingRuleTuple>
+void StructFieldsConvert(SrcStruct& src, DstStruct& dst, const MappingRuleTuple& mappingRuleTuple);
+
+// 特化结构体类型字段映射规则
+template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
+struct StructFieldMappingRule : FieldMappingRule<SrcIdx, DstIdx, void>
 {
-    std::tuple<FieldMappings...> mappings;
+    RuleTuple ruleTuple;
+
+    explicit StructFieldMappingRule(RuleTuple _ruleTuple) : ruleTuple(std::move(_ruleTuple)) {}
+
+    template <typename SrcStruct, typename DstStruct> 
+    void Convert(SrcStruct& src, DstStruct& dst) const
+    {
+        StructFieldsConvert(src, dst, ruleTuple);
+    }
+};
+
+// 映射集合
+template <typename... MappingsRules> 
+struct MappingRuleTuple
+{
+    std::tuple<MappingsRules...> mappings;
     
-    FieldMappingTuple(FieldMappings&&... maps) : mappings(std::forward<FieldMappings>(maps)...) {}
+    MappingRuleTuple(MappingsRules&&... maps) : mappings(std::forward<MappingsRules>(maps)...) {}
     
-    static constexpr std::size_t size = sizeof...(FieldMappings);
+    static constexpr std::size_t size = sizeof...(MappingsRules);
     
     template <std::size_t I>
     const auto& GetMapping() const {
@@ -59,24 +79,32 @@ struct FieldMappingTuple
     }
 };
 
-// 创建默认字段映射
+// 创建默认字段映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx>
-constexpr auto DefaultFieldMapping()
+constexpr auto MakeFieldMappingRule()
 {
-    return FieldMapping<SrcIdx, DstIdx>{};
+    return FieldMappingRule<SrcIdx, DstIdx>{};
 }
 
-// 创建带自定义转换器的字段映射
+// 创建带自定义转换器的字段映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx, typename Func>
-constexpr auto FieldMappingWith(Func&& converter)
+constexpr auto MakeFieldMappingCustomRule(Func&& converter)
 {
-    return CustomFieldMapping<SrcIdx, DstIdx, std::decay_t<Func>>(std::forward<Func>(converter));
+    return FieldMappingCustomRule<SrcIdx, DstIdx, std::decay_t<Func>>(std::forward<Func>(converter));
 }
 
-template <typename... FieldMappings>
-constexpr auto MakeFieldMappingTuple(FieldMappings&&... fieldMappings)
+// 创建结构体类型字段映射规则
+template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
+constexpr auto MakeStructFieldMappingRule(RuleTuple&& ruleTuple)
 {
-    return FieldMappingTuple<std::decay_t<FieldMappings>...>{std::forward<FieldMappings>(fieldMappings)...};
+    return StructFieldMappingRule<SrcIdx, DstIdx, std::decay_t<RuleTuple>>(std::forward<RuleTuple>(ruleTuple));
+}
+
+// 创建映射规则集合
+template <typename... MappingsRules>
+constexpr auto MakeMappingRuleTuple(MappingsRules&&... mappingsRules)
+{
+    return MappingRuleTuple<std::decay_t<MappingsRules>...>{std::forward<MappingsRules>(mappingsRules)...};
 }
 
 } // namespace csrl
