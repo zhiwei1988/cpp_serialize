@@ -8,6 +8,30 @@
 
 namespace csrl {
 
+// 将 std::string 转换为 char[N] 的转换函数
+template<typename SrcType, typename DstType>
+void StringToCharArrayConverter(const SrcType& src, DstType& dst) 
+{
+    static_assert(std::is_same<SrcType, std::string>::value, "Source must be std::string");
+    static_assert(std::is_array<DstType>::value, "Destination must be an array");
+    static_assert(std::is_same<typename std::remove_extent<DstType>::type, char>::value, "Destination must be char array");
+    
+    constexpr std::size_t N = std::extent<DstType>::value;
+
+    strncpy(dst, src.c_str(), N - 1);
+}
+
+// 将 char[N] 转换为 std::string 的转换函数
+template<typename SrcType, typename DstType>
+void CharArrayToStringConverter(const SrcType& src, DstType& dst)
+{
+    static_assert(std::is_array<SrcType>::value, "Source must be an array");
+    static_assert(std::is_same<typename std::remove_extent<SrcType>::type, char>::value, "Source must be char array");
+    static_assert(std::is_same<DstType, std::string>::value, "Destination must be std::string");
+
+    dst = std::string(src);
+}
+
 template <std::size_t SrcIdx, std::size_t DstIdx, typename Converter = void> 
 struct FieldMappingRule {
     static constexpr std::size_t srcIndex = SrcIdx;
@@ -64,24 +88,6 @@ struct StructFieldMappingRule : public FieldMappingRule<SrcIdx, DstIdx, void>
     }
 };
 
-// std::string 到 char[N] 的映射规则
-template <std::size_t SrcIdx, std::size_t DstIdx>
-struct StringToCharArrayMappingRule : public FieldMappingRule<SrcIdx, DstIdx, void>
-{
-    // 从 std::string 到 char[N] 的转换
-    template <typename SrcType, typename DstType>
-    void Convert(SrcType& src, DstType& dst) const
-    {
-        static_assert(std::is_same<SrcType, std::string>::value, "Source must be std::string");
-        static_assert(std::is_array<DstType>::value, "Destination must be an array");
-        static_assert(std::is_same<typename std::remove_extent<DstType>::type, char>::value, "Destination array must be of char type");
-
-        constexpr std::size_t N = std::extent<DstType>::value;
-
-        strncpy(dst, src.c_str(), N - 1);
-    }
-};
-
 // 映射集合
 template <typename... MappingsRules> 
 struct MappingRuleTuple
@@ -117,13 +123,6 @@ template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
 auto MakeStructFieldMappingRule(RuleTuple&& ruleTuple)
 {
     return StructFieldMappingRule<SrcIdx, DstIdx, std::decay_t<RuleTuple>>(std::forward<RuleTuple>(ruleTuple));
-}
-
-// 创建 std::string 到 char[N] 的映射规则
-template <std::size_t SrcIdx, std::size_t DstIdx>
-auto MakeStringToCharArrayMappingRule()
-{
-    return StringToCharArrayMappingRule<SrcIdx, DstIdx>{};
 }
 
 // 创建映射规则集合

@@ -43,7 +43,7 @@ int main() {
             csrl::MakeFieldMappingRule<1, 1>(),
             csrl::MakeFieldMappingRule<2, 2>()
         )),
-        csrl::MakeStringToCharArrayMappingRule<3, 3>()
+        csrl::MakeFieldMappingCustomRule<3, 3>(csrl::StringToCharArrayConverter<std::string, CharArray>)
     );
 
     // 使用自定义转换器的例子
@@ -65,7 +65,7 @@ int main() {
                 dst = src + 100;
             })
         )),
-        csrl::MakeStringToCharArrayMappingRule<3, 3>()
+        csrl::MakeFieldMappingCustomRule<3, 3>(csrl::StringToCharArrayConverter<std::string, CharArray>)
     );
 
     csrl::StructFieldsConvert(src2, dst2, mappingTuple2);
