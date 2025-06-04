@@ -4,6 +4,7 @@
 #include <utility>
 #include <type_traits>
 #include <functional>
+#include <cstring>
 
 namespace csrl {
 
@@ -31,7 +32,7 @@ struct FieldMappingRule<SrcIdx, DstIdx, void>
 
 // 特化内置类型字段自定义映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx, typename Func>
-struct FieldMappingCustomRule : FieldMappingRule<SrcIdx, DstIdx, Func>
+struct FieldMappingCustomRule : public FieldMappingRule<SrcIdx, DstIdx, Func>
 {
     Func converter;
 
@@ -50,7 +51,7 @@ void StructFieldsConvert(SrcStruct& src, DstStruct& dst, const MappingRuleTuple&
 
 // 特化结构体类型字段映射规则
 template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
-struct StructFieldMappingRule : FieldMappingRule<SrcIdx, DstIdx, void>
+struct StructFieldMappingRule : public FieldMappingRule<SrcIdx, DstIdx, void>
 {
     RuleTuple ruleTuple;
 
@@ -60,6 +61,24 @@ struct StructFieldMappingRule : FieldMappingRule<SrcIdx, DstIdx, void>
     void Convert(SrcStruct& src, DstStruct& dst) const
     {
         StructFieldsConvert(src, dst, ruleTuple);
+    }
+};
+
+// std::string 到 char[N] 的映射规则
+template <std::size_t SrcIdx, std::size_t DstIdx>
+struct StringToCharArrayMappingRule : public FieldMappingRule<SrcIdx, DstIdx, void>
+{
+    // 从 std::string 到 char[N] 的转换
+    template <typename SrcType, typename DstType>
+    void Convert(SrcType& src, DstType& dst) const
+    {
+        static_assert(std::is_same<SrcType, std::string>::value, "Source must be std::string");
+        static_assert(std::is_array<DstType>::value, "Destination must be an array");
+        static_assert(std::is_same<typename std::remove_extent<DstType>::type, char>::value, "Destination array must be of char type");
+
+        constexpr std::size_t N = std::extent<DstType>::value;
+
+        strncpy(dst, src.c_str(), N - 1);
     }
 };
 
@@ -98,6 +117,13 @@ template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
 auto MakeStructFieldMappingRule(RuleTuple&& ruleTuple)
 {
     return StructFieldMappingRule<SrcIdx, DstIdx, std::decay_t<RuleTuple>>(std::forward<RuleTuple>(ruleTuple));
+}
+
+// 创建 std::string 到 char[N] 的映射规则
+template <std::size_t SrcIdx, std::size_t DstIdx>
+auto MakeStringToCharArrayMappingRule()
+{
+    return StringToCharArrayMappingRule<SrcIdx, DstIdx>{};
 }
 
 // 创建映射规则集合
