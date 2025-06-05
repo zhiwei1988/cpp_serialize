@@ -3,17 +3,9 @@
 #include <tuple>
 #include <utility>
 #include <type_traits>
+#include "define_type_traits.h"
 
 namespace csrl {
-
-// 自定义实现C++17才支持的std::void_t
-template <typename...>
-struct void_t_impl {
-    using type = void;
-};
-
-template <typename... Ts>
-using void_t = typename void_t_impl<Ts...>::type;
 
 template <std::size_t I, typename T> 
 auto GetField(T&& obj) -> decltype(std::forward<T>(obj).template GetField<I>())

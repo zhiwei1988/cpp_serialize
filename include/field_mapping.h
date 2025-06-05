@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <functional>
 #include <cstring>
+#include "define_type_traits.h"
 
 namespace csrl {
 
@@ -32,31 +33,65 @@ void CharArrayToStringConverter(const SrcType& src, DstType& dst)
     dst = std::string(src);
 }
 
-template <std::size_t SrcIdx, std::size_t DstIdx, typename Converter = void> 
+// 表示字段访问路径的模板
+template<std::size_t... Index>
+struct FieldPath {
+    static constexpr std::size_t depth = sizeof...(Index);
+    static constexpr bool is_empty = (depth == 0);
+};
+
+template<std::size_t... Indexs>
+constexpr std::size_t FieldPath<Indexs...>::depth;
+
+template<std::size_t... Indexs>
+constexpr bool FieldPath<Indexs...>::is_empty;
+
+// 这里不能使用函数模版，因为函数模版不能被偏特化，函数模版重载时会产生歧义
+template<std::size_t FirstIndex, std::size_t... RestIndexs>
+struct PathAccessor {
+    template<typename S>
+    static decltype(auto) GetField(S& s) {
+        return PathAccessor<RestIndexs...>::GetField(std::get<FirstIndex>(s));
+    }
+};
+
+// 特化：路径访问的终止条件
+template<std::size_t LastIndex>
+struct PathAccessor<LastIndex> {
+    template<typename S>
+    static decltype(auto) GetField(S& s) {
+        return std::get<LastIndex>(s);
+    }
+};
+
+template<typename Struct, std::size_t... Indices>
+decltype(auto) GetFieldByPath(Struct& s, FieldPath<Indices...>) {
+    return PathAccessor<Indices...>::GetField(s);
+}
+
+template <typename SrcPath, typename DstPath, typename Converter = void> 
 struct FieldMappingRule {
-    static constexpr std::size_t srcIndex = SrcIdx;
-    static constexpr std::size_t dstIndex = DstIdx;
+    using SrcPathType = SrcPath;
+    using DstPathType = DstPath;
     using ConverterType = Converter;
 };
 
 // 特化内置类型字段默认映射规则（直接赋值）
-template <std::size_t SrcIdx, std::size_t DstIdx> 
-struct FieldMappingRule<SrcIdx, DstIdx, void>
+template <typename SrcPath, typename DstPath> 
+struct FieldMappingRule<SrcPath, DstPath, void>
 {
-    static constexpr std::size_t srcIndex = SrcIdx;
-    static constexpr std::size_t dstIndex = DstIdx;
-
     // 默认转换器
     template <typename SrcType, typename DstType> 
     static void Convert(SrcType& src, DstType& dst)
     {
-        dst = static_cast<DstType>(src);
+        GetFieldByPath(dst, DstPath{}) = 
+            static_cast<csrl::remove_cvref_t<decltype(GetFieldByPath(dst, DstPath{}))>>(GetFieldByPath(src, SrcPath{}));
     }
 };
 
 // 特化内置类型字段自定义映射规则
-template <std::size_t SrcIdx, std::size_t DstIdx, typename Func>
-struct FieldMappingCustomRule : public FieldMappingRule<SrcIdx, DstIdx, Func>
+template <typename SrcPath, typename DstPath, typename Func>
+struct FieldMappingCustomRule : public FieldMappingRule<SrcPath, DstPath, Func>
 {
     Func converter;
 
@@ -65,7 +100,7 @@ struct FieldMappingCustomRule : public FieldMappingRule<SrcIdx, DstIdx, Func>
     template <typename SrcType, typename DstType> 
     void Convert(SrcType& src, DstType& dst) const
     {
-        converter(src, dst);
+        converter(GetFieldByPath(src, SrcPath{}), GetFieldByPath(dst, DstPath{}));
     }
 };
 
@@ -74,8 +109,8 @@ template <typename SrcStruct, typename DstStruct, typename MappingRuleTuple>
 void StructFieldsConvert(SrcStruct& src, DstStruct& dst, const MappingRuleTuple& mappingRuleTuple);
 
 // 特化结构体类型字段映射规则
-template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
-struct StructFieldMappingRule : public FieldMappingRule<SrcIdx, DstIdx, void>
+template <typename SrcPath, typename DstPath, typename RuleTuple>
+struct StructFieldMappingRule : public FieldMappingRule<SrcPath, DstPath, void>
 {
     RuleTuple ruleTuple;
 
@@ -84,7 +119,7 @@ struct StructFieldMappingRule : public FieldMappingRule<SrcIdx, DstIdx, void>
     template <typename SrcStruct, typename DstStruct> 
     void Convert(SrcStruct& src, DstStruct& dst) const
     {
-        StructFieldsConvert(src, dst, ruleTuple);
+        StructFieldsConvert(GetFieldByPath(src, SrcPath{}), GetFieldByPath(dst, DstPath{}), ruleTuple);
     }
 };
 
@@ -104,25 +139,30 @@ struct MappingRuleTuple
     }
 };
 
+template <std::size_t... Indexs>
+constexpr FieldPath<Indexs...> MakeFieldPath() {
+    return FieldPath<Indexs...>{};
+}
+
 // 创建默认字段映射规则
-template <std::size_t SrcIdx, std::size_t DstIdx>
-auto MakeFieldMappingRule()
+template <std::size_t... SrcIndexs, std::size_t... DstIndexs>
+auto MakeFieldMappingRule(FieldPath<SrcIndexs...>, FieldPath<DstIndexs...>)
 {
-    return FieldMappingRule<SrcIdx, DstIdx>{};
+    return FieldMappingRule<FieldPath<SrcIndexs...>, FieldPath<DstIndexs...>>{};
 }
 
 // 创建带自定义转换器的字段映射规则
-template <std::size_t SrcIdx, std::size_t DstIdx, typename Func>
-auto MakeFieldMappingCustomRule(Func&& converter)
+template <std::size_t... SrcIndexs, std::size_t... DstIndexs, typename Func>
+auto MakeFieldMappingCustomRule(FieldPath<SrcIndexs...>, FieldPath<DstIndexs...>, Func&& converter)
 {
-    return FieldMappingCustomRule<SrcIdx, DstIdx, std::decay_t<Func>>(std::forward<Func>(converter));
+    return FieldMappingCustomRule<FieldPath<SrcIndexs...>, FieldPath<DstIndexs...>, std::decay_t<Func>>(std::forward<Func>(converter));
 }
 
 // 创建结构体类型字段映射规则
-template <std::size_t SrcIdx, std::size_t DstIdx, typename RuleTuple>
-auto MakeStructFieldMappingRule(RuleTuple&& ruleTuple)
+template <std::size_t... SrcIndexs, std::size_t... DstIndexs, typename RuleTuple>
+auto MakeStructFieldMappingRule(FieldPath<SrcIndexs...>, FieldPath<DstIndexs...>, RuleTuple&& ruleTuple)
 {
-    return StructFieldMappingRule<SrcIdx, DstIdx, std::decay_t<RuleTuple>>(std::forward<RuleTuple>(ruleTuple));
+    return StructFieldMappingRule<FieldPath<SrcIndexs...>, FieldPath<DstIndexs...>, std::decay_t<RuleTuple>>(std::forward<RuleTuple>(ruleTuple));
 }
 
 // 创建映射规则集合

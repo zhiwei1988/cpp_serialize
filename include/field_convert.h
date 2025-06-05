@@ -9,11 +9,7 @@ template <typename SrcStruct, typename DstStruct, typename MappingRuleTuple, std
 void SingleFieldConvert(SrcStruct& src, DstStruct& dst, const MappingRuleTuple& mappingRuleTuple)
 {
     const auto& mappingRule = mappingRuleTuple.template GetMapping<I>();
-    using MappingRuleType = std::remove_cv_t<std::remove_reference_t<decltype(mappingRule)>>;
-    constexpr std::size_t srcIndex = MappingRuleType::srcIndex;
-    constexpr std::size_t dstIndex = MappingRuleType::dstIndex;
-
-    mappingRule.Convert(std::get<srcIndex>(src), std::get<dstIndex>(dst));
+    mappingRule.Convert(src, dst);
 }
 
 template <typename SrcStruct, typename DstStruct, typename MappingRuleTuple, std::size_t... I>

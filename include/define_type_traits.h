@@ -13,4 +13,13 @@ struct remove_cvref {
 template <typename T>
 using remove_cvref_t = typename remove_cvref<T>::type;
 
+// 自定义实现C++17才支持的std::void_t
+template <typename...>
+struct void_t_impl {
+    using type = void;
+};
+
+template <typename... Ts>
+using void_t = typename void_t_impl<Ts...>::type;
+
 } // namespace csrl
