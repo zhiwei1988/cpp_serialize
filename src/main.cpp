@@ -13,7 +13,6 @@ DEFINE_STRUCT_WITH_TUPLE_INTERFACE(Test, (int, a), (int, b), (int, c))
 DEFINE_STRUCT_WITH_TUPLE_INTERFACE(Source, (int, id), (float, value), (Test, test), (std::string, name))
 DEFINE_STRUCT_WITH_TUPLE_INTERFACE(Destination, (float, val), (int, identifier), (Test, test), (CharArray, name))
 
-
 using namespace csrl;
 
 int main()

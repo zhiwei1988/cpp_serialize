@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 添加头文件目录
 include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/include/core)
+include_directories(${PROJECT_SOURCE_DIR}/include/json)
+include_directories(${PROJECT_SOURCE_DIR}/include/tlv)
 
 # 添加可执行文件
 add_executable(${PROJECT_NAME} src/main.cpp)
