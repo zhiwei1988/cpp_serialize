@@ -13,28 +13,27 @@
 #define TRACKED_PERSON_LIMIT 10
 #define DEVICE_ID_MAX_LENGTH 128
 
-// 追踪目标分类
 typedef enum {
-    TRACKING_FACE_BODY_RECTANGLE = 0x00, // 人脸人体检测框
+    TRACKING_FACE_BODY_RECTANGLE = 0x00,
     TRACKING_MAXIMUM,
 } TrackingType;
 
 enum class DataContentFilterMode {
     FILTER_ALL_CONTENT = 0,
-    FILTER_DETECTION_BOX = 0x01,   // 检测框
-    FILTER_OVERVIEW_IMAGE = 0x02,  // 全景图
-    FILTER_DETAILED_IMAGE = 0x04,  // 特写图
-    FILTER_TARGET_FEATURES = 0x08, // 目标特征值
-    FILTER_BOUNDARY_BOX = 0x10,    // 规则框
-    FILTER_ANALYSIS_DATA = 0x20,   // 统计信息
-    FILTER_COMPLETE_TYPES = 0xFF,  // 全部类型
+    FILTER_DETECTION_BOX = 0x01,
+    FILTER_OVERVIEW_IMAGE = 0x02,
+    FILTER_DETAILED_IMAGE = 0x04,
+    FILTER_TARGET_FEATURES = 0x08,
+    FILTER_BOUNDARY_BOX = 0x10,
+    FILTER_ANALYSIS_DATA = 0x20,
+    FILTER_COMPLETE_TYPES = 0xFF,
     FILTER_EXCLUDE_IMAGES =
         FILTER_COMPLETE_TYPES & (~(uint32_t)FILTER_OVERVIEW_IMAGE) & (~(uint32_t)FILTER_DETAILED_IMAGE),
 };
 
 enum class DataStructureFormat : uint16_t {
-    RAW_DATA_FORMAT = 0, // 智能原始裸数据类型
-    CACHED_DATA_FORMAT,  // 智能序列化数据，用于进程间通信
+    RAW_DATA_FORMAT = 0,
+    CACHED_DATA_FORMAT,
     REST_API_V1,
     REST_API_V2,
     REST_API_HSAPI,
@@ -148,13 +147,13 @@ typedef enum {
 } SERIALIZATION_ELEMENT_TYPE_E;
 
 enum DataCategory {
-    DATA_RECTANGLE_INFO = 0x00000001,  // 框数据     000... .0001
-    DATA_PICTURE_INFO = 0x00000002,    // 图数据     000... .0010
-    DATA_STATISTICS_INFO = 0x00000004, // 统计数据   000..  .0100
-    DATA_HEARTBEAT_INFO = 0x00000008,  // 保活数据   000... .1000
-    DATA_EXTERNAL_ALERT = 0x00000010,  // 第三方告警使用   000... 10000
-    DATA_VEHICLE_ATTRS = 0x00000020,   // 全息相机的车辆车牌属性信息 000....100000
-    DATA_AI_ALERT = 0x00000040,        // 智能告警   000   100000
+    DATA_RECTANGLE_INFO = 0x00000001,
+    DATA_PICTURE_INFO = 0x00000002,
+    DATA_STATISTICS_INFO = 0x00000004,
+    DATA_HEARTBEAT_INFO = 0x00000008,
+    DATA_EXTERNAL_ALERT = 0x00000010,
+    DATA_VEHICLE_ATTRS = 0x00000020,
+    DATA_AI_ALERT = 0x00000040,
     DATA_CATEGORY_LIMIT
 };
 
@@ -163,13 +162,11 @@ typedef struct {
     int16_t coordinateY;
 } GeometryPoint;
 
-// 线段
 typedef struct {
     GeometryPoint startPoint;
     GeometryPoint endPoint;
 } GeometryLine;
 
-// 多边形
 typedef struct {
     uint32_t pointCount;
     GeometryPoint points[COORDINATE_POINT_LIMIT];
@@ -236,4 +233,4 @@ typedef struct {
     PersonCountTargetParams targetList[TRACKED_PERSON_LIMIT];
 } PersonCountSubAlert;
 
-#endif // __SERIALIZATION_DATA_TYPE_H__
+#endif

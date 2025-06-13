@@ -36,6 +36,7 @@ AllowShortIfStatementsOnASingleLine: false
 
 # 换行策略
 # BreakBeforeBraces: Allman          # 所有大括号都另起一行（像 BSD 样式）
+AlwaysBreakTemplateDeclarations: true
 
 # 命名空间内代码缩进
 # IndentNamespace: true              # namespace 中的代码也要缩进
