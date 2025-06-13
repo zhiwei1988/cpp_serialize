@@ -8,8 +8,8 @@ UseTab: Never                # 永远使用空格而不是 tab
 
 # 大括号相关
 BraceWrapping:
-  AfterClass: true               # 类定义后换行放大括号
-  AfterStruct: true              # struct 定义后换行放大括号
+  AfterClass: false               # 类定义后换行放大括号
+  AfterStruct: false              # struct 定义后换行放大括号
   AfterControlStatement: false   # if/for/while 后换行放大括号
   AfterFunction: true            # 函数定义后换行放大括号
   AfterNamespace: true           # namespace 后换行放大括号
@@ -35,10 +35,10 @@ SpaceInEmptyParentheses: false     # 空括号中不加空格
 AllowShortIfStatementsOnASingleLine: false
 
 # 换行策略
-BreakBeforeBraces: Allman          # 所有大括号都另起一行（像 BSD 样式）
+# BreakBeforeBraces: Allman          # 所有大括号都另起一行（像 BSD 样式）
 
 # 命名空间内代码缩进
-IndentNamespace: true              # namespace 中的代码也要缩进
+# IndentNamespace: true              # namespace 中的代码也要缩进
 
 # 自定义注释格式
 CommentPragmas: '^ IWYU pragma:'   # 保留特定注释风格（比如 IWYU 工具）
