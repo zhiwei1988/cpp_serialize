@@ -119,6 +119,18 @@ struct ArithmeticTLVConverter : public BaseTLVConverter<TLVType> {
     }
 };
 
+// 数字转字符串 TLV 转换器
+template <uint32_t TLVType>
+struct DigitalToStringTLVConverter : public BaseTLVConverter<TLVType> {
+    template <typename SrcType>
+    void operator()(const SrcType& src, std::shared_ptr<TLVWriter>& dst) const 
+    {
+        static_assert(std::is_integral<SrcType>::value, "DigitalToStringTLVConverter only works with integral types");
+        std::string valueStr = std::to_string(src);
+        dst->AppendBuf(TLVType, valueStr.c_str(), valueStr.length());
+    }
+};
+
 template<typename SrcPath, typename ConverterType>
 struct FieldMappingTLVCustomRule: public FieldMappingRule<SrcPath, std::shared_ptr<TLVWriter>, ConverterType> {
     ConverterType converter;
@@ -147,5 +159,9 @@ auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& conv
 // 算术类型 TLV 转换器宏
 #define MAKE_TLV_ARITHMETIC_MAPPING(SrcPath, TLVType)                                                                  \
     MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::ArithmeticTLVConverter)
+
+// 数字转字符串 TLV 转换器宏
+#define MAKE_TLV_DIGITAL_STRING_MAPPING(SrcPath, TLVType)                                                                  \
+    MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::DigitalToStringTLVConverter)
 
 }

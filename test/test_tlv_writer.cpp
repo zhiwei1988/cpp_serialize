@@ -412,4 +412,85 @@ TEST_F(TLVWriterTest, ArithmeticTLVConverter_Basic) {
     EXPECT_EQ(actualUint32Value, testArithmeticTLVConverter.uint32Value); 
     offset += sizeof(uint32_t);
 }
-#endif
+
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestDigitalStringTLVConverter,
+    (int32_t, intValue),
+    (uint32_t, uint32Value),
+    (int64_t, int64Value)
+);
+
+// 测试数字转字符串 TLV 转换器
+TEST_F(TLVWriterTest, DigitalStringTLVConverter_Basic) {
+    constexpr uint32_t INT_TYPE = 0x7001;
+    constexpr uint32_t UINT32_TYPE = 0x7002;
+    constexpr uint32_t INT64_TYPE = 0x7003;
+    
+    auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
+
+    auto mappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_DIGITAL_STRING_MAPPING(MakeFieldPath<0>(), INT_TYPE),
+        MAKE_TLV_DIGITAL_STRING_MAPPING(MakeFieldPath<1>(), UINT32_TYPE),
+        MAKE_TLV_DIGITAL_STRING_MAPPING(MakeFieldPath<2>(), INT64_TYPE)
+    );
+
+    TestDigitalStringTLVConverter testDigitalStringTLVConverter{12345, 98765, 123456789LL};
+    StructFieldsConvert(testDigitalStringTLVConverter, sharedWriter, mappingTuple);
+    
+    // 验证数据
+    const uint8_t* data = sharedWriter->data();
+    ASSERT_NE(data, nullptr);
+    
+    // 准备期望的字符串值
+    std::string expectedIntStr = std::to_string(testDigitalStringTLVConverter.intValue);
+    std::string expectedUint32Str = std::to_string(testDigitalStringTLVConverter.uint32Value);
+    std::string expectedInt64Str = std::to_string(testDigitalStringTLVConverter.int64Value);
+    
+    size_t expectedSize = 3 * (2 * sizeof(uint32_t)) + expectedIntStr.length() + expectedUint32Str.length() + expectedInt64Str.length();
+    EXPECT_EQ(sharedWriter->size(), expectedSize);
+    
+    // 验证第一个 TLV（int 转字符串）
+    size_t offset = 0;
+    uint32_t actualType1;
+    memcpy(&actualType1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType1, INT_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength1;
+    memcpy(&actualLength1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength1, expectedIntStr.length());
+    offset += sizeof(uint32_t);
+    
+    std::string actualIntStr(reinterpret_cast<const char*>(data + offset), actualLength1);
+    EXPECT_EQ(actualIntStr, expectedIntStr);
+    offset += actualLength1;
+    
+    // 验证第二个 TLV（uint32_t 转字符串）
+    uint32_t actualType2;
+    memcpy(&actualType2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType2, UINT32_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength2;
+    memcpy(&actualLength2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength2, expectedUint32Str.length());
+    offset += sizeof(uint32_t);
+    
+    std::string actualUint32Str(reinterpret_cast<const char*>(data + offset), actualLength2);
+    EXPECT_EQ(actualUint32Str, expectedUint32Str);
+    offset += actualLength2;
+
+    // 验证第三个 TLV（int64 转字符串）
+    uint32_t actualType3;
+    memcpy(&actualType3, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType3, INT64_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength3;
+    memcpy(&actualLength3, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength3, expectedInt64Str.length());
+    offset += sizeof(uint32_t);
+
+    std::string actualInt64Str(reinterpret_cast<const char*>(data + offset), actualLength3);
+    EXPECT_EQ(actualInt64Str, expectedInt64Str);
+    offset += actualLength3;
+}

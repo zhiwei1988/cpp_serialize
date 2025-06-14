@@ -24,8 +24,47 @@
 #define PP_FOR_EACH_I_1(M, STRUCT_NAME, F0) M(0, STRUCT_NAME, F0)
 #define PP_FOR_EACH_I_2(M, STRUCT_NAME, F0, F1) PP_FOR_EACH_I_1(M, STRUCT_NAME, F0) M(1, STRUCT_NAME, F1)
 #define PP_FOR_EACH_I_3(M, STRUCT_NAME, F0, F1, F2) PP_FOR_EACH_I_2(M, STRUCT_NAME, F0, F1) M(2, STRUCT_NAME, F2)
+
 #define PP_FOR_EACH_I_4(M, STRUCT_NAME, F0, F1, F2, F3)                                                                \
     PP_FOR_EACH_I_3(M, STRUCT_NAME, F0, F1, F2) M(3, STRUCT_NAME, F3)
+
+#define PP_FOR_EACH_I_5(M, STRUCT_NAME, F0, F1, F2, F3, F4)                                                            \
+    PP_FOR_EACH_I_4(M, STRUCT_NAME, F0, F1, F2, F3) M(4, STRUCT_NAME, F4)
+
+#define PP_FOR_EACH_I_6(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5)                                                        \
+    PP_FOR_EACH_I_5(M, STRUCT_NAME, F0, F1, F2, F3, F4) M(5, STRUCT_NAME, F5)
+
+#define PP_FOR_EACH_I_7(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6)                                                    \
+    PP_FOR_EACH_I_6(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5) M(6, STRUCT_NAME, F6)
+
+#define PP_FOR_EACH_I_8(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7)                                                \
+    PP_FOR_EACH_I_7(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6) M(7, STRUCT_NAME, F7)
+
+#define PP_FOR_EACH_I_9(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8)                                            \
+    PP_FOR_EACH_I_8(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7) M(8, STRUCT_NAME, F8)
+
+#define PP_FOR_EACH_I_10(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9)                                       \
+    PP_FOR_EACH_I_9(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8) M(9, STRUCT_NAME, F9)
+
+#define PP_FOR_EACH_I_11(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)                                  \
+    PP_FOR_EACH_I_10(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9) M(10, STRUCT_NAME, F10)
+
+#define PP_FOR_EACH_I_12(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11)                             \
+    PP_FOR_EACH_I_11(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10) M(11, STRUCT_NAME, F11)
+
+#define PP_FOR_EACH_I_13(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12)                        \
+    PP_FOR_EACH_I_12(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11) M(12, STRUCT_NAME, F12)
+
+#define PP_FOR_EACH_I_14(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13)                   \
+    PP_FOR_EACH_I_13(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12) M(13, STRUCT_NAME, F13)
+
+#define PP_FOR_EACH_I_15(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14)              \
+    PP_FOR_EACH_I_14(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13)                       \
+        M(14, STRUCT_NAME, F14)
+
+#define PP_FOR_EACH_I_16(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15)         \
+    PP_FOR_EACH_I_15(M, STRUCT_NAME, F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14)                  \
+        M(15, STRUCT_NAME, F15)
 
 #define EXPAND_ARGS_AS_FOR_EACH(STRUCT_NAME, MACRO_TO_APPLY, ...)                                                      \
     PP_CAT(PP_FOR_EACH_I_, PP_NARG(__VA_ARGS__))(MACRO_TO_APPLY, STRUCT_NAME, __VA_ARGS__)
