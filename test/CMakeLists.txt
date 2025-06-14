@@ -37,4 +37,4 @@ target_include_directories(test_cpp_serialize PRIVATE
 target_link_libraries(test_cpp_serialize gtest gtest_main)
 
 # 添加测试
-add_test(NAME test_all COMMAND test_cpp_serialize)
+add_test(NAME AppendBuf_Multiple COMMAND test_cpp_serialize)

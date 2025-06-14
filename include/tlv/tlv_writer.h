@@ -23,7 +23,7 @@ namespace csrl {
 
 class TLVWriter {
 public:
-    explicit TLVWriter(size_t initialCapacity = 1024) : m_buffer(initialCapacity) {}
+    explicit TLVWriter(size_t initialCapacity = 1024) { m_buffer.reserve(initialCapacity); }
 
     TLVWriter(const TLVWriter&) = delete;
     TLVWriter& operator=(const TLVWriter&) = delete;

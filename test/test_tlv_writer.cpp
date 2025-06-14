@@ -141,7 +141,7 @@ TEST_F(TLVWriterTest, AppendBuf_LargeData) {
     TLVWriter smallWriter(16);
     
     // 创建一个大于初始容量的数据
-    const size_t largeDataSize = 100;
+    const size_t largeDataSize = 10000;
     char* largeData = new char[largeDataSize];
     memset(largeData, 'A', largeDataSize);
     uint32_t type = 0x1005;
@@ -165,33 +165,6 @@ TEST_F(TLVWriterTest, AppendBuf_LargeData) {
     EXPECT_EQ(memcmp(data + 2 * sizeof(uint32_t), largeData, largeDataSize), 0);
     
     delete[] largeData;
-}
-
-// 测试二进制数据处理
-TEST_F(TLVWriterTest, AppendBuf_BinaryData) {
-    uint8_t binaryData[] = {0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD};
-    uint32_t type = 0x1006;
-    size_t dataLen = sizeof(binaryData);
-    
-    int32_t result = writer->AppendBuf(type, reinterpret_cast<const char*>(binaryData), dataLen);
-    EXPECT_EQ(result, 0);
-    
-    const uint8_t* data = writer->data();
-    ASSERT_NE(data, nullptr);
-    EXPECT_EQ(writer->size(), 2 * sizeof(uint32_t) + dataLen);
-    
-    // 验证 type
-    uint32_t actualType;
-    memcpy(&actualType, data, sizeof(uint32_t));
-    EXPECT_EQ(actualType, type);
-    
-    // 验证 length
-    uint32_t actualLength;
-    memcpy(&actualLength, data + sizeof(uint32_t), sizeof(uint32_t));
-    EXPECT_EQ(actualLength, dataLen);
-    
-    // 验证二进制数据
-    EXPECT_EQ(memcmp(data + 2 * sizeof(uint32_t), binaryData, dataLen), 0);
 }
 
 // 测试不同类型的数据

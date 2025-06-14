@@ -108,3 +108,7 @@ add_test(NAME script_test
 add_test(NAME python_test 
     COMMAND python3 ${CMAKE_SOURCE_DIR}/test.py)
 ```
+
+## gtest
+
+测试指定用例：`./test_cpp_serialize --gtest_filter=TLVWriterTest.AppendBuf_Multiple`
