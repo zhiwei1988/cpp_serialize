@@ -18,6 +18,9 @@
 #include <utility>
 #include <type_traits>
 #include <vector>
+#include "define_tuple_interface.h"
+#include "field_mapping.h"
+#include "field_convert.h"
 
 namespace csrl {
 
@@ -115,5 +118,34 @@ struct ArithmeticTLVConverter : public BaseTLVConverter<TLVType> {
         dst->AppendBuf(TLVType, reinterpret_cast<const char*>(&src), sizeof(src));
     }
 };
+
+template<typename SrcPath, typename ConverterType>
+struct FieldMappingTLVCustomRule: public FieldMappingRule<SrcPath, std::shared_ptr<TLVWriter>, ConverterType> {
+    ConverterType converter;
+
+    explicit FieldMappingTLVCustomRule(ConverterType f) : converter(std::move(f)) {}
+
+    template<typename SrcType>
+    void Convert(SrcType& src, std::shared_ptr<TLVWriter>& dst) const
+    {
+        converter(GetFieldByPath(src, SrcPath{}), dst);
+    }
+};
+
+template<std::size_t... SrcIndexs, typename ConverterType>
+auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& converter)
+{
+    return FieldMappingTLVCustomRule<FieldPath<SrcIndexs...>, ConverterType>(std::forward<ConverterType>(converter));
+}
+
+// TLV 字段映射规则创建宏
+#define MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, ConverterType)                                                        \
+    MakeFieldMappingTLVCustomRule(SrcPath, ConverterType<TLVType>{})
+
+// 新增某种特定的 TLV 转换器在此处添加宏
+
+// 算术类型 TLV 转换器宏
+#define MAKE_TLV_ARITHMETIC_MAPPING(SrcPath, TLVType)                                                                  \
+    MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::ArithmeticTLVConverter)
 
 }

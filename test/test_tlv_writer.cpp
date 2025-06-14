@@ -12,6 +12,10 @@
 #include <tlv_writer.h>
 #include <cstring>
 #include <memory>
+#include "define_tuple_interface.h"
+#include "field_mapping.h"
+#include "field_convert.h"
+#include "tlv_writer.h"
 
 using namespace csrl;
 
@@ -329,31 +333,34 @@ TEST_F(TLVWriterTest, Size_Tracking) {
     EXPECT_EQ(writer->size(), expectedSize3);
 }
 
-#if 0
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestArithmeticTLVConverter,
+    (int32_t, intValue),
+    (double, doubleValue),
+    (uint32_t, uint32Value)
+);
 
 // 测试算术类型 TLV 转换器
 TEST_F(TLVWriterTest, ArithmeticTLVConverter_Basic) {
     constexpr uint32_t INT_TYPE = 0x6001;
     constexpr uint32_t DOUBLE_TYPE = 0x6002;
-    
-    ArithmeticTLVConverter<INT_TYPE> intConverter;
-    ArithmeticTLVConverter<DOUBLE_TYPE> doubleConverter;
+    constexpr uint32_t UINT32_TYPE = 0x6003;
     
     auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
-    
-    // 测试 int 类型
-    int32_t intValue = 12345;
-    intConverter(intValue, sharedWriter);
-    
-    // 测试 double 类型
-    double doubleValue = 3.14159;
-    doubleConverter(doubleValue, sharedWriter);
+
+    auto mappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_ARITHMETIC_MAPPING(MakeFieldPath<0>(), INT_TYPE),
+        MAKE_TLV_ARITHMETIC_MAPPING(MakeFieldPath<1>(), DOUBLE_TYPE),
+        MAKE_TLV_ARITHMETIC_MAPPING(MakeFieldPath<2>(), UINT32_TYPE)
+    );
+
+    TestArithmeticTLVConverter testArithmeticTLVConverter{12345, 3.14159, 12345};
+    StructFieldsConvert(testArithmeticTLVConverter, sharedWriter, mappingTuple);
     
     // 验证数据
     const uint8_t* data = sharedWriter->data();
     ASSERT_NE(data, nullptr);
     
-    size_t expectedSize = 2 * (2 * sizeof(uint32_t)) + sizeof(int32_t) + sizeof(double);
+    size_t expectedSize = 3 * (2 * sizeof(uint32_t)) + sizeof(int32_t) + sizeof(double) + sizeof(uint32_t);
     EXPECT_EQ(sharedWriter->size(), expectedSize);
     
     // 验证第一个 TLV（int）
@@ -370,7 +377,7 @@ TEST_F(TLVWriterTest, ArithmeticTLVConverter_Basic) {
     
     int32_t actualIntValue;
     memcpy(&actualIntValue, data + offset, sizeof(int32_t));
-    EXPECT_EQ(actualIntValue, intValue);
+    EXPECT_EQ(actualIntValue, testArithmeticTLVConverter.intValue);
     offset += sizeof(int32_t);
     
     // 验证第二个 TLV（double）
@@ -386,14 +393,23 @@ TEST_F(TLVWriterTest, ArithmeticTLVConverter_Basic) {
     
     double actualDoubleValue;
     memcpy(&actualDoubleValue, data + offset, sizeof(double));
-    EXPECT_DOUBLE_EQ(actualDoubleValue, doubleValue);
-}
+    EXPECT_DOUBLE_EQ(actualDoubleValue, testArithmeticTLVConverter.doubleValue);
+    offset += sizeof(double);
 
-// 测试算术类型 TLV 转换器的类型常量
-TEST_F(TLVWriterTest, ArithmeticTLVConverter_TypeConstant) {
-    constexpr uint32_t TEST_TYPE = 0x7001;
-    ArithmeticTLVConverter<TEST_TYPE> converter;
+    // 验证第三个 TLV（uint32）
+    uint32_t actualType3;
+    memcpy(&actualType3, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType3, UINT32_TYPE);
+    offset += sizeof(uint32_t);
     
-    EXPECT_EQ(converter.tlv_type, TEST_TYPE);
+    uint32_t actualLength3;
+    memcpy(&actualLength3, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength3, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    uint32_t actualUint32Value;
+    memcpy(&actualUint32Value, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualUint32Value, testArithmeticTLVConverter.uint32Value); 
+    offset += sizeof(uint32_t);
 }
 #endif
