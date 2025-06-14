@@ -117,6 +117,30 @@ struct BaseTLVConverter {
             dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, reinterpret_cast<const char*>(&src), sizeof(src));
         }
     }
+
+    // C 风格字符数组特化
+    template<size_t N>
+    void operator()(const char (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
+    {
+        if (m_keyName == nullptr) {
+            dst->AppendBuf(m_tlvType, src, strlen(src) + 1);
+        } else {
+            dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, src, strlen(src) + 1);
+        }
+    }
+
+    // C 风格非字符数组特化 (如 int[5])
+    template<typename T, size_t N>
+    typename std::enable_if<!std::is_same<T, char>::value, void>::type
+    operator()(const T (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
+    {
+        if (m_keyName == nullptr) {
+            dst->AppendBuf(m_tlvType, reinterpret_cast<const char*>(src), sizeof(src));
+        } else {
+            dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, 
+                           reinterpret_cast<const char*>(src), sizeof(src));
+        }
+    }
 };
 
 // 数字转字符串 TLV 转换器

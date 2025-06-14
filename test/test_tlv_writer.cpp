@@ -333,34 +333,45 @@ TEST_F(TLVWriterTest, Size_Tracking) {
     EXPECT_EQ(writer->size(), expectedSize3);
 }
 
+using CharArray16 = char[16];
+using IntArray4 = int32_t[4];
+
 DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestArithmeticTLVConverter,
     (int32_t, intValue),
     (double, doubleValue),
-    (uint32_t, uint32Value)
+    (uint32_t, uint32Value),
+    (CharArray16, stringValue),
+    (IntArray4, intArrayValue)
 );
 
-// 测试算术类型 TLV 转换器
 TEST_F(TLVWriterTest, BaseTLVConverter_Basic) {
     constexpr uint32_t INT_TYPE = 0x6001;
     constexpr uint32_t DOUBLE_TYPE = 0x6002;
     constexpr uint32_t UINT32_TYPE = 0x6003;
+    constexpr uint32_t STRING_TYPE = 0x6004;
+    constexpr uint32_t INT_ARRAY_TYPE = 0x6005;
     
     auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
 
     auto mappingTuple = MakeMappingRuleTuple(
         MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<0>(), INT_TYPE),
         MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<1>(), DOUBLE_TYPE),
-        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<2>(), UINT32_TYPE)
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<2>(), UINT32_TYPE),
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<3>(), STRING_TYPE),
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<4>(), INT_ARRAY_TYPE)
     );
 
-    TestArithmeticTLVConverter testArithmeticTLVConverter{12345, 3.14159, 12345};
+    TestArithmeticTLVConverter testArithmeticTLVConverter{12345, 3.14159, 12345, "Hello", {100, 200, 300, 400}};
     StructFieldsConvert(testArithmeticTLVConverter, sharedWriter, mappingTuple);
     
     // 验证数据
     const uint8_t* data = sharedWriter->data();
     ASSERT_NE(data, nullptr);
     
-    size_t expectedSize = 3 * (2 * sizeof(uint32_t)) + sizeof(int32_t) + sizeof(double) + sizeof(uint32_t);
+    const char* expectedStringValue = "Hello";
+    size_t expectedStringLen = strlen(expectedStringValue) + 1; // 包含null终止符
+    size_t expectedIntArraySize = sizeof(testArithmeticTLVConverter.intArrayValue);
+    size_t expectedSize = 5 * (2 * sizeof(uint32_t)) + sizeof(int32_t) + sizeof(double) + sizeof(uint32_t) + expectedStringLen + expectedIntArraySize;
     EXPECT_EQ(sharedWriter->size(), expectedSize);
     
     // 验证第一个 TLV（int）
@@ -411,6 +422,43 @@ TEST_F(TLVWriterTest, BaseTLVConverter_Basic) {
     memcpy(&actualUint32Value, data + offset, sizeof(uint32_t));
     EXPECT_EQ(actualUint32Value, testArithmeticTLVConverter.uint32Value); 
     offset += sizeof(uint32_t);
+    
+    // 验证第四个 TLV（字符数组）
+    uint32_t actualType4;
+    memcpy(&actualType4, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType4, STRING_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength4;
+    memcpy(&actualLength4, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength4, expectedStringLen);
+    offset += sizeof(uint32_t);
+    
+    std::string actualStringValue(reinterpret_cast<const char*>(data + offset), actualLength4 - 1); // 去掉null终止符进行比较
+    EXPECT_EQ(actualStringValue, expectedStringValue);
+    
+    // 验证null终止符存在
+    EXPECT_EQ(data[offset + actualLength4 - 1], '\0');
+    offset += actualLength4;
+
+    // 验证第五个 TLV（int32_t 数组）
+    uint32_t actualType5;
+    memcpy(&actualType5, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType5, INT_ARRAY_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength5;
+    memcpy(&actualLength5, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength5, expectedIntArraySize);
+    offset += sizeof(uint32_t);
+    
+    // 验证int数组内容
+    int32_t actualIntArray[4];
+    memcpy(actualIntArray, data + offset, expectedIntArraySize);
+    for (int i = 0; i < 4; ++i) {
+        EXPECT_EQ(actualIntArray[i], testArithmeticTLVConverter.intArrayValue[i]);
+    }
+    offset += expectedIntArraySize;
 }
 
 DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestDigitalStringTLVConverter,
