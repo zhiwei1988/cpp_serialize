@@ -103,31 +103,38 @@ private:
 };
 
 // TLV 转换器基类
-template<uint32_t TLVType>
+template<uint32_t tlvType, const char* keyName = nullptr>
 struct BaseTLVConverter {
-    static constexpr uint32_t tlv_type = TLVType;
-};
+    static constexpr uint32_t m_tlvType = tlvType;
+    static constexpr const char* m_keyName = keyName;
 
-// 算术类型 TLV 转换器
-template<uint32_t TLVType>
-struct ArithmeticTLVConverter : public BaseTLVConverter<TLVType> {
     template<typename SrcType>
     void operator()(const SrcType& src, std::shared_ptr<TLVWriter>& dst) const 
     {
-        static_assert(std::is_arithmetic<SrcType>::value, "ArithmeticTLVConverter only works with arithmetic types");
-        dst->AppendBuf(TLVType, reinterpret_cast<const char*>(&src), sizeof(src));
+        if (m_keyName == nullptr) {
+            dst->AppendBuf(m_tlvType, reinterpret_cast<const char*>(&src), sizeof(src));
+        } else {
+            dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, reinterpret_cast<const char*>(&src), sizeof(src));
+        }
     }
 };
 
 // 数字转字符串 TLV 转换器
-template <uint32_t TLVType>
-struct DigitalToStringTLVConverter : public BaseTLVConverter<TLVType> {
+template <uint32_t TLVType, const char* KeyName = nullptr>
+struct DigitalToStringTLVConverter : public BaseTLVConverter<TLVType, KeyName> {
+    using BaseTLVConverter<TLVType, KeyName>::m_keyName;
+    using BaseTLVConverter<TLVType, KeyName>::m_tlvType;
+
     template <typename SrcType>
     void operator()(const SrcType& src, std::shared_ptr<TLVWriter>& dst) const 
     {
         static_assert(std::is_integral<SrcType>::value, "DigitalToStringTLVConverter only works with integral types");
         std::string valueStr = std::to_string(src);
-        dst->AppendBuf(TLVType, valueStr.c_str(), valueStr.length());
+        if (m_keyName == nullptr) {
+            dst->AppendBuf(m_tlvType, valueStr.c_str(), valueStr.length());
+        } else {
+            dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, valueStr.c_str(), valueStr.length());
+        }
     }
 };
 
@@ -154,14 +161,21 @@ auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& conv
 #define MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, ConverterType)                                                        \
     MakeFieldMappingTLVCustomRule(SrcPath, ConverterType<TLVType>{})
 
+#define MAKE_TLV_FIELD_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName, ConverterType)                                                        \
+    MakeFieldMappingTLVCustomRule(SrcPath, ConverterType<TLVType, KeyName>{})
+
 // 新增某种特定的 TLV 转换器在此处添加宏
 
-// 算术类型 TLV 转换器宏
-#define MAKE_TLV_ARITHMETIC_MAPPING(SrcPath, TLVType)                                                                  \
-    MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::ArithmeticTLVConverter)
+// 默认 TLV 转换器宏
+#define MAKE_TLV_DEFAULT_MAPPING(SrcPath, TLVType) MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::BaseTLVConverter)
+
+#define MAKE_TLV_DEFAULT_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName)                                                      \
+    MAKE_TLV_FIELD_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName, csrl::BaseTLVConverter)
 
 // 数字转字符串 TLV 转换器宏
-#define MAKE_TLV_DIGITAL_STRING_MAPPING(SrcPath, TLVType)                                                                  \
+#define MAKE_TLV_DIGITAL_STRING_MAPPING(SrcPath, TLVType)                                                              \
     MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::DigitalToStringTLVConverter)
 
+#define MAKE_TLV_DIGITAL_STRING_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName)                                                              \
+    MAKE_TLV_FIELD_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName, csrl::DigitalToStringTLVConverter)
 }

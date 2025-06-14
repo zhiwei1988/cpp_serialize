@@ -340,7 +340,7 @@ DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestArithmeticTLVConverter,
 );
 
 // 测试算术类型 TLV 转换器
-TEST_F(TLVWriterTest, ArithmeticTLVConverter_Basic) {
+TEST_F(TLVWriterTest, BaseTLVConverter_Basic) {
     constexpr uint32_t INT_TYPE = 0x6001;
     constexpr uint32_t DOUBLE_TYPE = 0x6002;
     constexpr uint32_t UINT32_TYPE = 0x6003;
@@ -348,9 +348,9 @@ TEST_F(TLVWriterTest, ArithmeticTLVConverter_Basic) {
     auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
 
     auto mappingTuple = MakeMappingRuleTuple(
-        MAKE_TLV_ARITHMETIC_MAPPING(MakeFieldPath<0>(), INT_TYPE),
-        MAKE_TLV_ARITHMETIC_MAPPING(MakeFieldPath<1>(), DOUBLE_TYPE),
-        MAKE_TLV_ARITHMETIC_MAPPING(MakeFieldPath<2>(), UINT32_TYPE)
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<0>(), INT_TYPE),
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<1>(), DOUBLE_TYPE),
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<2>(), UINT32_TYPE)
     );
 
     TestArithmeticTLVConverter testArithmeticTLVConverter{12345, 3.14159, 12345};
@@ -493,4 +493,112 @@ TEST_F(TLVWriterTest, DigitalStringTLVConverter_Basic) {
     std::string actualInt64Str(reinterpret_cast<const char*>(data + offset), actualLength3);
     EXPECT_EQ(actualInt64Str, expectedInt64Str);
     offset += actualLength3;
+}
+
+// 用于 MAKE_TLV_DEFAULT_MAPPING_WITH_KEY 测试的键名常量
+static constexpr char INT_KEY_NAME[] = "intValue";
+static constexpr char DOUBLE_KEY_NAME[] = "doubleValue";
+static constexpr char UINT32_KEY_NAME[] = "uint32Value";
+
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestTLVConverterWithKey,
+    (int32_t, intValue),
+    (double, doubleValue),
+    (uint32_t, uint32Value)
+);
+
+// 测试带键名的 TLV 转换器
+TEST_F(TLVWriterTest, BaseTLVConverterWithKey_Basic) {
+    constexpr uint32_t INT_TYPE = 0x8001;
+    constexpr uint32_t DOUBLE_TYPE = 0x8002;
+    constexpr uint32_t UINT32_TYPE = 0x8003;
+    
+    auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
+
+    auto mappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_DEFAULT_MAPPING_WITH_KEY(MakeFieldPath<0>(), INT_TYPE, INT_KEY_NAME),
+        MAKE_TLV_DEFAULT_MAPPING_WITH_KEY(MakeFieldPath<1>(), DOUBLE_TYPE, DOUBLE_KEY_NAME),
+        MAKE_TLV_DEFAULT_MAPPING_WITH_KEY(MakeFieldPath<2>(), UINT32_TYPE, UINT32_KEY_NAME)
+    );
+
+    TestTLVConverterWithKey testTLVConverterWithKey{54321, 2.71828, 98765};
+    StructFieldsConvert(testTLVConverterWithKey, sharedWriter, mappingTuple);
+    
+    // 验证数据
+    const uint8_t* data = sharedWriter->data();
+    ASSERT_NE(data, nullptr);
+    
+    // 计算期望的总大小：每个TLV都是 type + length + (key + null + value)
+    size_t intKeyLen = strlen(INT_KEY_NAME) + 1;
+    size_t doubleKeyLen = strlen(DOUBLE_KEY_NAME) + 1;
+    size_t uint32KeyLen = strlen(UINT32_KEY_NAME) + 1;
+    
+    size_t expectedSize = 3 * (2 * sizeof(uint32_t)) + 
+                         (intKeyLen + sizeof(int32_t)) +
+                         (doubleKeyLen + sizeof(double)) +
+                         (uint32KeyLen + sizeof(uint32_t));
+    EXPECT_EQ(sharedWriter->size(), expectedSize);
+    
+    // 验证第一个 TLV（int 带键名）
+    size_t offset = 0;
+    uint32_t actualType1;
+    memcpy(&actualType1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType1, INT_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength1;
+    memcpy(&actualLength1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength1, intKeyLen + sizeof(int32_t));
+    offset += sizeof(uint32_t);
+    
+    // 验证键名部分（包含null终止符）
+    EXPECT_EQ(memcmp(data + offset, INT_KEY_NAME, intKeyLen), 0);
+    offset += intKeyLen;
+    
+    // 验证值部分
+    int32_t actualIntValue;
+    memcpy(&actualIntValue, data + offset, sizeof(int32_t));
+    EXPECT_EQ(actualIntValue, testTLVConverterWithKey.intValue);
+    offset += sizeof(int32_t);
+    
+    // 验证第二个 TLV（double 带键名）
+    uint32_t actualType2;
+    memcpy(&actualType2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType2, DOUBLE_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength2;
+    memcpy(&actualLength2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength2, doubleKeyLen + sizeof(double));
+    offset += sizeof(uint32_t);
+    
+    // 验证键名部分（包含null终止符）
+    EXPECT_EQ(memcmp(data + offset, DOUBLE_KEY_NAME, doubleKeyLen), 0);
+    offset += doubleKeyLen;
+    
+    // 验证值部分
+    double actualDoubleValue;
+    memcpy(&actualDoubleValue, data + offset, sizeof(double));
+    EXPECT_DOUBLE_EQ(actualDoubleValue, testTLVConverterWithKey.doubleValue);
+    offset += sizeof(double);
+
+    // 验证第三个 TLV（uint32 带键名）
+    uint32_t actualType3;
+    memcpy(&actualType3, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType3, UINT32_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength3;
+    memcpy(&actualLength3, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength3, uint32KeyLen + sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // 验证键名部分（包含null终止符）
+    EXPECT_EQ(memcmp(data + offset, UINT32_KEY_NAME, uint32KeyLen), 0);
+    offset += uint32KeyLen;
+    
+    // 验证值部分
+    uint32_t actualUint32Value;
+    memcpy(&actualUint32Value, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualUint32Value, testTLVConverterWithKey.uint32Value);
+    offset += sizeof(uint32_t);
 }
