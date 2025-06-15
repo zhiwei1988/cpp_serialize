@@ -191,16 +191,34 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
     }
 };
 
+#if 0
+template<uint32_t tlvType, size_t count>
+struct VariableLengthArrayTLVConverter : public BaseTLVConverter<tlvType> {
+    using BaseTLVConverter<tlvType>::m_tlvType;
+
+    template<typename SrcType>
+    void operator()(SrcType& src, std::shared_ptr<TLVWriter>& dst) const 
+    {
+        constexpr size_t arraySize = std::extent<remove_cvref_t<decltype(src)>>::value;
+        size_t actualCount = (count < arraySize) ? count : arraySize;
+
+        for (size_t i = 0; i < actualCount; i++) {
+            dst->AppendBuf(m_tlvType, reinterpret_cast<const char*>(&src[i]), sizeof(src[i]));
+        }
+    }
+};
+#endif
+
 template<typename SrcPath, typename ConverterType>
 struct FieldMappingTLVCustomRule: public FieldMappingRule<SrcPath, std::shared_ptr<TLVWriter>, ConverterType> {
-    ConverterType converter;
+    ConverterType m_converter;
 
-    explicit FieldMappingTLVCustomRule(ConverterType f) : converter(std::move(f)) {}
+    explicit FieldMappingTLVCustomRule(ConverterType f) : m_converter(std::move(f)) {}
 
     template<typename SrcType>
     void Convert(SrcType& src, std::shared_ptr<TLVWriter>& dst) const
     {
-        converter(GetFieldByPath(src, SrcPath{}), dst);
+        m_converter(GetFieldByPath(src, SrcPath{}), dst);
     }
 };
 
@@ -210,41 +228,35 @@ auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& conv
     return FieldMappingTLVCustomRule<FieldPath<SrcIndexs...>, ConverterType>(std::forward<ConverterType>(converter));
 }
 
-// TLV 字段映射规则创建宏
-#define MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, ConverterType)                                                        \
-    MakeFieldMappingTLVCustomRule(SrcPath, ConverterType<TLVType>{})
-
-#define MAKE_TLV_FIELD_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName, ConverterType)                                                        \
-    MakeFieldMappingTLVCustomRule(SrcPath, ConverterType<TLVType, KeyName>{})
-
-#define MAKE_TLV_FIELD_MAPPING_WITH_SUB_STRUCT(SrcPath, TLVType, RuleTuple, ConverterType)                                                        \
-    MakeFieldMappingTLVCustomRule(SrcPath, ConverterType<TLVType, remove_cvref_t<decltype(RuleTuple)>>(RuleTuple))
-
-#define MAKE_TLV_FIELD_MAPPING_WITH_SUB_STRUCT_WITH_KEY(SrcPath, TLVType, RuleTuple, KeyName, ConverterType)                                                        \
-    MakeFieldMappingTLVCustomRule(SrcPath, ConverterType<TLVType, remove_cvref_t<decltype(RuleTuple)>, KeyName>(RuleTuple))
-
 // 新增某种特定的 TLV 转换器在此处添加宏
 
 // 默认 TLV 转换器宏
-#define MAKE_TLV_DEFAULT_MAPPING(SrcPath, TLVType) MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::BaseTLVConverter)
+#define MAKE_TLV_DEFAULT_MAPPING(SrcPath, TLVType) MakeFieldMappingTLVCustomRule(SrcPath, BaseTLVConverter<TLVType>{})
 
 // 带键值的默认 TLV 转换器宏
 #define MAKE_TLV_DEFAULT_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName)                                                      \
-    MAKE_TLV_FIELD_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName, csrl::BaseTLVConverter)
+    MakeFieldMappingTLVCustomRule(SrcPath, BaseTLVConverter<TLVType, KeyName>{})
 
 // 数字转字符串 TLV 转换器宏
 #define MAKE_TLV_DIGITAL_STRING_MAPPING(SrcPath, TLVType)                                                              \
-    MAKE_TLV_FIELD_MAPPING(SrcPath, TLVType, csrl::DigitalToStringTLVConverter)
+    MakeFieldMappingTLVCustomRule(SrcPath, DigitalToStringTLVConverter<TLVType>{})
 
 // 带键值的数字转字符串 TLV 转换器宏
 #define MAKE_TLV_DIGITAL_STRING_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName)                                                              \
-    MAKE_TLV_FIELD_MAPPING_WITH_KEY(SrcPath, TLVType, KeyName, csrl::DigitalToStringTLVConverter)
+    MakeFieldMappingTLVCustomRule(SrcPath, DigitalToStringTLVConverter<TLVType, KeyName>{})
 
 // 子结构体 TLV 转换器宏
 #define MAKE_TLV_SUB_STRUCT_MAPPING(SrcPath, TLVType, RuleTuple)                                                              \
-    MAKE_TLV_FIELD_MAPPING_WITH_SUB_STRUCT(SrcPath, TLVType, RuleTuple, csrl::SubStructTLVConverter)
+    MakeFieldMappingTLVCustomRule(SrcPath, SubStructTLVConverter<TLVType, remove_cvref_t<decltype(RuleTuple)>>(RuleTuple))
 
 // 带键值的子结构体 TLV 转换器宏
 #define MAKE_TLV_SUB_STRUCT_MAPPING_WITH_KEY(SrcPath, TLVType, RuleTuple, KeyName)                                                              \
-    MAKE_TLV_FIELD_MAPPING_WITH_SUB_STRUCT_WITH_KEY(SrcPath, TLVType, RuleTuple, KeyName, csrl::SubStructTLVConverter)
+    MakeFieldMappingTLVCustomRule(SrcPath, SubStructTLVConverter<TLVType, remove_cvref_t<decltype(RuleTuple)>, KeyName>(RuleTuple))
+
+#if 0
+// 变长数组 TLV 转换器宏
+#define MAKE_TLV_VARIABLE_LENGTH_ARRAY_MAPPING(SrcPath, Count, TLVType)                                                              \
+    MakeFieldMappingTLVCustomRule(SrcPath, VariableLengthArrayTLVConverter<TLVType, Count>{})
+#endif
+
 }

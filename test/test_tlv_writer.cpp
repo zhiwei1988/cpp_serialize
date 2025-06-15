@@ -9,11 +9,9 @@
  */
 
 #include <gtest/gtest.h>
-#include <tlv_writer.h>
 #include <cstring>
 #include <memory>
 #include "define_tuple_interface.h"
-#include "field_mapping.h"
 #include "field_convert.h"
 #include "tlv_writer.h"
 
@@ -824,3 +822,117 @@ TEST_F(TLVWriterTest, SubStructTLVConverterWithKey_Basic) {
     memcpy(&actualDoubleValue, data + offset, sizeof(double));
     EXPECT_DOUBLE_EQ(actualDoubleValue, parentStruct.subData.doubleField);
 }
+
+#if 0
+using IntArray10 = uint32_t[10];
+
+// 测试用于 uint32_t 数组元素的变长数组结构体
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestVariableLengthUint32Array,
+    (uint32_t, arrayCount),
+    (IntArray10, uint32Array)
+);
+
+// 测试用于结构体数组元素的简洁结构体
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(SimpleElement,
+    (int32_t, id),
+    (uint32_t, value)
+);
+
+using SimpleElementArray5 = SimpleElement[5];
+
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(TestVariableLengthStructArray,
+    (uint32_t, elementCount),
+    (SimpleElementArray5, elements)
+);
+
+// 测试变长数组 TLV 转换器 - uint32_t 数组元素
+TEST_F(TLVWriterTest, VariableLengthArrayTLVConverter_Uint32Array) {
+    constexpr uint32_t UINT32_ARRAY_TYPE = 0xB001;
+    
+    auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
+
+    auto mappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_VARIABLE_LENGTH_ARRAY_MAPPING(MakeFieldPath<1>(), 10, UINT32_ARRAY_TYPE)
+    );
+
+    TestVariableLengthUint32Array testStruct{3, {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000}};
+    StructFieldsConvert(testStruct, sharedWriter, mappingTuple);
+    
+    // 验证数据
+    const uint8_t* data = sharedWriter->data();
+    ASSERT_NE(data, nullptr);
+    
+    // 预期：3个 uint32_t 元素，每个元素一个 TLV
+    // 每个TLV: 4字节(type) + 4字节(length) + 4字节(value) = 12字节
+    // 总共: 3 * 12 = 36字节
+    size_t expectedSize = 3 * (2 * sizeof(uint32_t) + sizeof(uint32_t));
+    EXPECT_EQ(sharedWriter->size(), expectedSize);
+    
+    // 验证每个数组元素的 TLV
+    size_t offset = 0;
+    uint32_t expectedValues[] = {100, 200, 300};
+    
+    for (int i = 0; i < 3; i++) {
+        uint32_t actualType;
+        memcpy(&actualType, data + offset, sizeof(uint32_t));
+        EXPECT_EQ(actualType, UINT32_ARRAY_TYPE);
+        offset += sizeof(uint32_t);
+        
+        uint32_t actualLength;
+        memcpy(&actualLength, data + offset, sizeof(uint32_t));
+        EXPECT_EQ(actualLength, sizeof(uint32_t));
+        offset += sizeof(uint32_t);
+        
+        uint32_t actualValue;
+        memcpy(&actualValue, data + offset, sizeof(uint32_t));
+        EXPECT_EQ(actualValue, expectedValues[i]);
+        offset += sizeof(uint32_t);
+    }
+}
+
+// 测试变长数组 TLV 转换器 - 结构体数组元素
+TEST_F(TLVWriterTest, VariableLengthArrayTLVConverter_StructArray) {
+    constexpr uint32_t STRUCT_ARRAY_TYPE = 0xB002;
+    
+    auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
+
+    auto mappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_VARIABLE_LENGTH_ARRAY_MAPPING(MakeFieldPath<1>(), MakeFieldPath<0>(), STRUCT_ARRAY_TYPE)
+    );
+
+    TestVariableLengthStructArray testStruct{2, {{1, 100}, {2, 200}, {3, 300}, {4, 400}, {5, 500}}};
+    StructFieldsConvert(testStruct, sharedWriter, mappingTuple);
+    
+    // 验证数据
+    const uint8_t* data = sharedWriter->data();
+    ASSERT_NE(data, nullptr);
+    
+    // 预期：2个 SimpleElement 结构体，每个结构体一个 TLV
+    // 每个TLV: 4字节(type) + 4字节(length) + 8字节(SimpleElement) = 16字节
+    // 总共: 2 * 16 = 32字节
+    size_t expectedSize = 2 * (2 * sizeof(uint32_t) + sizeof(SimpleElement));
+    EXPECT_EQ(sharedWriter->size(), expectedSize);
+    
+    // 验证每个数组元素的 TLV
+    size_t offset = 0;
+    SimpleElement expectedElements[] = {{1, 100}, {2, 200}};
+    
+    for (int i = 0; i < 2; i++) {
+        uint32_t actualType;
+        memcpy(&actualType, data + offset, sizeof(uint32_t));
+        EXPECT_EQ(actualType, STRUCT_ARRAY_TYPE);
+        offset += sizeof(uint32_t);
+        
+        uint32_t actualLength;
+        memcpy(&actualLength, data + offset, sizeof(uint32_t));
+        EXPECT_EQ(actualLength, sizeof(SimpleElement));
+        offset += sizeof(uint32_t);
+        
+        SimpleElement actualElement;
+        memcpy(&actualElement, data + offset, sizeof(SimpleElement));
+        EXPECT_EQ(actualElement.id, expectedElements[i].id);
+        EXPECT_EQ(actualElement.value, expectedElements[i].value);
+        offset += sizeof(SimpleElement);
+    }
+}
+#endif
