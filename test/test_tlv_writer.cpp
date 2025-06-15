@@ -650,3 +650,177 @@ TEST_F(TLVWriterTest, BaseTLVConverterWithKey_Basic) {
     EXPECT_EQ(actualUint32Value, testTLVConverterWithKey.uint32Value);
     offset += sizeof(uint32_t);
 }
+
+// 定义子结构体（包含2个字段）
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(SubStruct,
+    (int32_t, intField),
+    (double, doubleField)
+);
+
+// 定义父结构体（包含一个子结构体）
+DEFINE_STRUCT_WITH_TUPLE_INTERFACE(ParentStruct,
+    (SubStruct, subData)
+);
+
+// 用于带键值的子结构体测试
+static constexpr char SUB_STRUCT_KEY_NAME[] = "subData";
+
+// 测试子结构体 TLV 转换器（不带键值）
+TEST_F(TLVWriterTest, SubStructTLVConverter_Basic) {
+    constexpr uint32_t SUB_STRUCT_TYPE = 0x9001;
+    constexpr uint32_t SUB_INT_TYPE = 0x9002;
+    constexpr uint32_t SUB_DOUBLE_TYPE = 0x9003;
+    
+    auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
+
+    // 定义子结构体内部字段的转换规则
+    auto subStructMappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<0>(), SUB_INT_TYPE),
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<1>(), SUB_DOUBLE_TYPE)
+    );
+
+    // 定义父结构体的转换规则
+    auto parentMappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_SUB_STRUCT_MAPPING(MakeFieldPath<0>(), SUB_STRUCT_TYPE, subStructMappingTuple)
+    );
+
+    ParentStruct parentStruct{{123, 4.56}};
+    StructFieldsConvert(parentStruct, sharedWriter, parentMappingTuple);
+    
+    // 验证数据
+    const uint8_t* data = sharedWriter->data();
+    ASSERT_NE(data, nullptr);
+    
+    // 预期结构：外层TLV包含内部的两个TLV
+    // 内部数据大小：(int TLV: 4+4+4) + (double TLV: 4+4+8) = 28 字节
+    // 外层数据大小：4+4+28 = 36 字节
+    size_t expectedInnerSize = 2 * (2 * sizeof(uint32_t)) + sizeof(int32_t) + sizeof(double);
+    size_t expectedOuterSize = 2 * sizeof(uint32_t) + expectedInnerSize;
+    EXPECT_EQ(sharedWriter->size(), expectedOuterSize);
+    
+    // 验证外层 TLV
+    size_t offset = 0;
+    uint32_t actualType;
+    memcpy(&actualType, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType, SUB_STRUCT_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength;
+    memcpy(&actualLength, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength, expectedInnerSize);
+    offset += sizeof(uint32_t);
+    
+    // 验证内层第一个 TLV（int）
+    uint32_t innerType1;
+    memcpy(&innerType1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerType1, SUB_INT_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t innerLength1;
+    memcpy(&innerLength1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerLength1, sizeof(int32_t));
+    offset += sizeof(uint32_t);
+    
+    int32_t actualIntValue;
+    memcpy(&actualIntValue, data + offset, sizeof(int32_t));
+    EXPECT_EQ(actualIntValue, parentStruct.subData.intField);
+    offset += sizeof(int32_t);
+    
+    // 验证内层第二个 TLV（double）
+    uint32_t innerType2;
+    memcpy(&innerType2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerType2, SUB_DOUBLE_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t innerLength2;
+    memcpy(&innerLength2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerLength2, sizeof(double));
+    offset += sizeof(uint32_t);
+    
+    double actualDoubleValue;
+    memcpy(&actualDoubleValue, data + offset, sizeof(double));
+    EXPECT_DOUBLE_EQ(actualDoubleValue, parentStruct.subData.doubleField);
+}
+
+// 测试子结构体 TLV 转换器（带键值）
+TEST_F(TLVWriterTest, SubStructTLVConverterWithKey_Basic) {
+    constexpr uint32_t SUB_STRUCT_TYPE = 0xA001;
+    constexpr uint32_t SUB_INT_TYPE = 0xA002;
+    constexpr uint32_t SUB_DOUBLE_TYPE = 0xA003;
+    
+    auto sharedWriter = std::shared_ptr<TLVWriter>(std::move(writer));
+
+    // 定义子结构体内部字段的转换规则
+    auto subStructMappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<0>(), SUB_INT_TYPE),
+        MAKE_TLV_DEFAULT_MAPPING(MakeFieldPath<1>(), SUB_DOUBLE_TYPE)
+    );
+
+    // 定义父结构体的转换规则（带键值）
+    auto parentMappingTuple = MakeMappingRuleTuple(
+        MAKE_TLV_SUB_STRUCT_MAPPING_WITH_KEY(MakeFieldPath<0>(), SUB_STRUCT_TYPE, subStructMappingTuple, SUB_STRUCT_KEY_NAME)
+    );
+
+    ParentStruct parentStruct{{789, 1.23}};
+    StructFieldsConvert(parentStruct, sharedWriter, parentMappingTuple);
+    
+    // 验证数据
+    const uint8_t* data = sharedWriter->data();
+    ASSERT_NE(data, nullptr);
+    
+    // 预期结构：外层TLV包含键值 + 内部的两个TLV
+    // 内部数据大小：(int TLV: 4+4+4) + (double TLV: 4+4+8) = 28 字节
+    // 键值长度：strlen(SUB_STRUCT_KEY_NAME) + 1 = 8 字节
+    // 外层数据大小：4+4+(8+28) = 44 字节
+    size_t expectedInnerSize = 2 * (2 * sizeof(uint32_t)) + sizeof(int32_t) + sizeof(double);
+    size_t keyLen = strlen(SUB_STRUCT_KEY_NAME) + 1;
+    size_t expectedOuterSize = 2 * sizeof(uint32_t) + keyLen + expectedInnerSize;
+    EXPECT_EQ(sharedWriter->size(), expectedOuterSize);
+    
+    // 验证外层 TLV
+    size_t offset = 0;
+    uint32_t actualType;
+    memcpy(&actualType, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualType, SUB_STRUCT_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t actualLength;
+    memcpy(&actualLength, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(actualLength, keyLen + expectedInnerSize);
+    offset += sizeof(uint32_t);
+    
+    // 验证键值部分
+    EXPECT_EQ(memcmp(data + offset, SUB_STRUCT_KEY_NAME, keyLen), 0);
+    offset += keyLen;
+    
+    // 验证内层第一个 TLV（int）
+    uint32_t innerType1;
+    memcpy(&innerType1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerType1, SUB_INT_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t innerLength1;
+    memcpy(&innerLength1, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerLength1, sizeof(int32_t));
+    offset += sizeof(uint32_t);
+    
+    int32_t actualIntValue;
+    memcpy(&actualIntValue, data + offset, sizeof(int32_t));
+    EXPECT_EQ(actualIntValue, parentStruct.subData.intField);
+    offset += sizeof(int32_t);
+    
+    // 验证内层第二个 TLV（double）
+    uint32_t innerType2;
+    memcpy(&innerType2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerType2, SUB_DOUBLE_TYPE);
+    offset += sizeof(uint32_t);
+    
+    uint32_t innerLength2;
+    memcpy(&innerLength2, data + offset, sizeof(uint32_t));
+    EXPECT_EQ(innerLength2, sizeof(double));
+    offset += sizeof(uint32_t);
+    
+    double actualDoubleValue;
+    memcpy(&actualDoubleValue, data + offset, sizeof(double));
+    EXPECT_DOUBLE_EQ(actualDoubleValue, parentStruct.subData.doubleField);
+}
