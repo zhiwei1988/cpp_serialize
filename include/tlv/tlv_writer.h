@@ -191,24 +191,6 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
     }
 };
 
-#if 0
-template<uint32_t tlvType, size_t count>
-struct VariableLengthArrayTLVConverter : public BaseTLVConverter<tlvType> {
-    using BaseTLVConverter<tlvType>::m_tlvType;
-
-    template<typename SrcType>
-    void operator()(SrcType& src, std::shared_ptr<TLVWriter>& dst) const 
-    {
-        constexpr size_t arraySize = std::extent<remove_cvref_t<decltype(src)>>::value;
-        size_t actualCount = (count < arraySize) ? count : arraySize;
-
-        for (size_t i = 0; i < actualCount; i++) {
-            dst->AppendBuf(m_tlvType, reinterpret_cast<const char*>(&src[i]), sizeof(src[i]));
-        }
-    }
-};
-#endif
-
 template<typename SrcPath, typename ConverterType>
 struct FieldMappingTLVCustomRule: public FieldMappingRule<SrcPath, std::shared_ptr<TLVWriter>, ConverterType> {
     ConverterType m_converter;
@@ -252,11 +234,5 @@ auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& conv
 // 带键值的子结构体 TLV 转换器宏
 #define MAKE_TLV_SUB_STRUCT_MAPPING_WITH_KEY(SrcPath, TLVType, RuleTuple, KeyName)                                                              \
     MakeFieldMappingTLVCustomRule(SrcPath, SubStructTLVConverter<TLVType, remove_cvref_t<decltype(RuleTuple)>, KeyName>(RuleTuple))
-
-#if 0
-// 变长数组 TLV 转换器宏
-#define MAKE_TLV_VARIABLE_LENGTH_ARRAY_MAPPING(SrcPath, Count, TLVType)                                                              \
-    MakeFieldMappingTLVCustomRule(SrcPath, VariableLengthArrayTLVConverter<TLVType, Count>{})
-#endif
 
 }
