@@ -89,7 +89,13 @@
 // 重要：为表达式添加括号，可以保证返回的值是左值引用 
 // 生成 get<I> 函数模板特化
 #define GEN_GET_FUNCTION_SPEC(INDEX, STRUCT_NAME, FIELD_PAIR)                                                          \
-    template <> inline decltype(auto) get<INDEX>(STRUCT_NAME & s)                                   \
+    template <> \
+    inline decltype(auto) get<INDEX>(STRUCT_NAME & s)                                   \
+    {                                                                                                                  \
+        return (s.FIELD_NAME(FIELD_PAIR));                                                                               \
+    }\
+    template <> \
+    inline decltype(auto) get<INDEX>(const STRUCT_NAME & s)                                   \
     {                                                                                                                  \
         return (s.FIELD_NAME(FIELD_PAIR));                                                                               \
     }

@@ -175,7 +175,7 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
     explicit SubStructTLVConverter(RuleTuple &ruleTuple) : m_ruleTuple(std::move(ruleTuple)) {}
     
     template<typename SrcType>
-    void operator()(SrcType& src, std::shared_ptr<TLVWriter>& dst) const 
+    void operator()(const SrcType& src, std::shared_ptr<TLVWriter>& dst) const 
     {
         auto tempDst = std::make_shared<TLVWriter>(1024);
         StructFieldsConvert(src, tempDst, m_ruleTuple);
@@ -191,7 +191,7 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
     }
 
     template<typename SrcType, size_t N>
-    void operator()(SrcType (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
+    void operator()(const SrcType (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
     {
         for (size_t i = 0; i < N; ++i) {
             auto tempDst = std::make_shared<TLVWriter>(1024);
