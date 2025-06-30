@@ -189,6 +189,25 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
             }
         }
     }
+
+    template<typename SrcType, size_t N>
+    void operator()(const SrcType (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
+    {
+        for (size_t i = 0; i < N; ++i) {
+            auto tempDst = std::make_shared<TLVWriter>(1024);
+            StructFieldsConvert(src[i], tempDst, m_ruleTuple);
+            
+            size_t len = tempDst->size();
+            if (len > 0) {
+                if (m_keyName == nullptr) {
+                    dst->AppendBuf(m_tlvType, reinterpret_cast<const char*>(tempDst->data()), len);
+                } else {
+                    dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, 
+                                   reinterpret_cast<const char*>(tempDst->data()), len);
+                }
+            }
+        }
+    }
 };
 
 template<typename SrcPath, typename ConverterType>
