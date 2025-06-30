@@ -191,7 +191,7 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
     }
 
     template<typename SrcType, size_t N>
-    void operator()(const SrcType (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
+    void operator()(SrcType (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
     {
         for (size_t i = 0; i < N; ++i) {
             auto tempDst = std::make_shared<TLVWriter>(1024);
