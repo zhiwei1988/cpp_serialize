@@ -103,6 +103,37 @@ private:
     std::vector<uint8_t> m_buffer;
 };
 
+// 用于包装可变长C风格数组的结构
+template<typename T>
+struct VariableLengthArray {
+    uint32_t length;      // 实际元素个数
+    const T* data;        // 数组指针
+    size_t maxSize;       // 数组最大容量（可选，用于安全检查）
+    
+    VariableLengthArray(uint32_t len, const T* arr, size_t max = 0) 
+        : length(len), data(arr), maxSize(max) {}
+};
+
+// 辅助函数：创建可变长数组包装
+template<typename T, size_t N>
+VariableLengthArray<T> MakeVariableLengthArray(uint32_t length, const T (&array)[N])
+{
+    return VariableLengthArray<T>(std::min(length, static_cast<uint32_t>(N)), array, N);
+}
+
+template<std::size_t LengthIndex, std::size_t ArrayIndex>
+struct VariableLengthArrayExtractor {
+    template<typename SrcType>
+    VariableLengthArray<typename std::remove_extent<
+        decltype(GetField<ArrayIndex>(std::declval<SrcType&>()))>::type>
+    operator()(const SrcType& src) const
+    {
+        auto& length = GetField<LengthIndex>(src);
+        auto& array = GetField<ArrayIndex>(src);
+        return MakeVariableLengthArray(length, array);
+    }
+};
+
 // TLV 转换器基类
 template<uint32_t tlvType, const char* keyName = nullptr>
 struct BaseTLVConverter {
@@ -140,6 +171,20 @@ struct BaseTLVConverter {
         } else {
             dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, 
                            reinterpret_cast<const char*>(src), sizeof(src));
+        }
+    }
+
+    // 可变长数组特化
+    template<typename T>
+    void operator()(const VariableLengthArray<T>& src, std::shared_ptr<TLVWriter>& dst) const
+    {
+        for (size_t i = 0; i < src.length; ++i) {
+            if (m_keyName == nullptr) {
+                dst->AppendBuf(m_tlvType, reinterpret_cast<const char*>(&src.data[i]), sizeof(src.data[i]));
+            } else {
+                dst->AppendPair(m_tlvType, m_keyName, strlen(m_keyName) + 1, 
+                               reinterpret_cast<const char*>(&src.data[i]), sizeof(src.data[i]));
+            }
         }
     }
 };
@@ -190,6 +235,7 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
         }
     }
 
+    // C 风格数组特化
     template<typename SrcType, size_t N>
     void operator()(const SrcType (&src)[N], std::shared_ptr<TLVWriter>& dst) const 
     {
@@ -207,6 +253,28 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
                 }
             }
         }
+    }
+
+    // 可变长数组特化
+    template<typename T>
+    void operator()(const VariableLengthArray<T>& src, std::shared_ptr<TLVWriter>& dst) const 
+    {
+        // 逐个序列化数组元素
+        for (uint32_t i = 0; i < src.length; ++i) {
+            auto tempDst = std::make_shared<TLVWriter>(1024);
+            StructFieldsConvert(src.data[i], tempDst, m_ruleTuple);
+
+            size_t len = tempDst->size();
+            if (len > 0) {
+                if (keyName == nullptr) {
+                    dst->AppendBuf(tlvType, reinterpret_cast<const char*>(tempDst->data()), len);
+                } else {
+                    dst->AppendPair(tlvType, keyName, strlen(keyName) + 1, 
+                                reinterpret_cast<const char*>(tempDst->data()), len);
+                }
+            }
+        }
+        
     }
 };
 
@@ -228,6 +296,17 @@ auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& conv
 {
     return FieldMappingTLVCustomRule<FieldPath<SrcIndexs...>, ConverterType>(std::forward<ConverterType>(converter));
 }
+
+template<uint32_t tlvType, std::size_t LengthIndex, std::size_t ArrayIndex, const char* keyName = nullptr>
+struct ComposedVariableLengthArrayTLVConverter {
+    template<typename SrcType>
+    void operator()(const SrcType& src, std::shared_ptr<TLVWriter>& dst) const {
+        // 先提取可变长数组
+        auto varArray = VariableLengthArrayExtractor<LengthIndex, ArrayIndex>{}(src);
+        // 然后使用 BaseTLVConverter 进行序列化
+        BaseTLVConverter<tlvType, keyName>{}(varArray, dst);
+    }
+};
 
 // 新增某种特定的 TLV 转换器在此处添加宏
 
@@ -253,5 +332,8 @@ auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& conv
 // 带键值的子结构体 TLV 转换器宏
 #define MAKE_TLV_SUB_STRUCT_MAPPING_WITH_KEY(SrcPath, TLVType, RuleTuple, KeyName)                                                              \
     MakeFieldMappingTLVCustomRule(SrcPath, SubStructTLVConverter<TLVType, remove_cvref_t<decltype(RuleTuple)>, KeyName>(RuleTuple))
+
+#define MAKE_TLV_VARIABLE_LENGTH_ARRAY_MAPPING(SrcPath, LengthIndex, ArrayIndex, TLVType) \
+    MakeFieldMappingTLVCustomRule(SrcPath, ComposedVariableLengthArrayTLVConverter<TLVType, LengthIndex, ArrayIndex>{})
 
 }
