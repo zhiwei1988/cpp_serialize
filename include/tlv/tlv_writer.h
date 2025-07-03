@@ -333,6 +333,7 @@ struct ComposedVariableLengthArrayTLVConverter {
 #define MAKE_TLV_SUB_STRUCT_MAPPING_WITH_KEY(SrcPath, TLVType, RuleTuple, KeyName)                                                              \
     MakeFieldMappingTLVCustomRule(SrcPath, SubStructTLVConverter<TLVType, remove_cvref_t<decltype(RuleTuple)>, KeyName>(RuleTuple))
 
+// 可变长数组 TLV 转换器宏
 #define MAKE_TLV_VARIABLE_LENGTH_ARRAY_MAPPING(SrcPath, LengthIndex, ArrayIndex, TLVType) \
     MakeFieldMappingTLVCustomRule(SrcPath, ComposedVariableLengthArrayTLVConverter<TLVType, LengthIndex, ArrayIndex>{})
 
