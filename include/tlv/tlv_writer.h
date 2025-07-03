@@ -277,7 +277,7 @@ struct SubStructTLVConverter : public BaseTLVConverter<tlvType, keyName> {
 };
 
 template<typename SrcPath, typename ConverterType>
-struct FieldMappingTLVCustomRule: public FieldMappingRule<SrcPath, std::shared_ptr<TLVWriter>, ConverterType> {
+struct FieldMappingTLVCustomRule {
     ConverterType m_converter;
 
     explicit FieldMappingTLVCustomRule(ConverterType f) : m_converter(std::move(f)) {}
