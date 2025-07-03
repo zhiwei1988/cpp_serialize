@@ -126,8 +126,8 @@ struct VariableLengthArrayExtractor {
     template<typename SrcType>
     auto operator()(SrcType& src) const
     {
-        auto& length = csrl::GetField<LengthIndex>(src);
-        auto& array = csrl::GetField<ArrayIndex>(src);
+        auto& length = PathAccessor<LengthIndex>::GetField(src);
+        auto& array = PathAccessor<ArrayIndex>::GetField(src);
         return MakeVariableLengthArray(length, array);
     }
 };
