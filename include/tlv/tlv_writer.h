@@ -124,12 +124,10 @@ VariableLengthArray<T> MakeVariableLengthArray(uint32_t length, const T (&array)
 template<std::size_t LengthIndex, std::size_t ArrayIndex>
 struct VariableLengthArrayExtractor {
     template<typename SrcType>
-    VariableLengthArray<typename std::remove_extent<
-        decltype(GetField<ArrayIndex>(std::declval<SrcType&>()))>::type>
-    operator()(const SrcType& src) const
+    auto operator()(SrcType& src) const
     {
-        auto& length = GetField<LengthIndex>(src);
-        auto& array = GetField<ArrayIndex>(src);
+        auto& length = csrl::GetField<LengthIndex>(src);
+        auto& array = csrl::GetField<ArrayIndex>(src);
         return MakeVariableLengthArray(length, array);
     }
 };
@@ -300,7 +298,7 @@ auto MakeFieldMappingTLVCustomRule(FieldPath<SrcIndexs...>, ConverterType&& conv
 template<uint32_t tlvType, std::size_t LengthIndex, std::size_t ArrayIndex, const char* keyName = nullptr>
 struct ComposedVariableLengthArrayTLVConverter {
     template<typename SrcType>
-    void operator()(const SrcType& src, std::shared_ptr<TLVWriter>& dst) const {
+    void operator()(SrcType& src, std::shared_ptr<TLVWriter>& dst) const {
         // 先提取可变长数组
         auto varArray = VariableLengthArrayExtractor<LengthIndex, ArrayIndex>{}(src);
         // 然后使用 BaseTLVConverter 进行序列化

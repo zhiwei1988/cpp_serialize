@@ -65,8 +65,16 @@ struct PathAccessor<LastIndex> {
 };
 
 template<typename Struct, std::size_t... Indices>
-decltype(auto) GetFieldByPath(Struct& s, FieldPath<Indices...>) {
+decltype(auto) GetFieldByPath(Struct& s, FieldPath<Indices...>)
+{
     return PathAccessor<Indices...>::GetField(s);
+}
+
+// 特化：空路径直接返回原对象本身
+template<typename Struct>
+decltype(auto) GetFieldByPath(Struct& s, FieldPath<>) 
+{
+    return s;
 }
 
 template <typename SrcPath, typename DstPath, typename Converter = void> 
