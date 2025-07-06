@@ -3,7 +3,7 @@
  * @author Zhiwei Tan (zhiweix1988@gmail.com)
  * @brief TLV 写入器，用于将数据序列化为 TLV 格式
  * @version 0.1
- * @date 2025-06-14 23:00:00
+ * @date 2025-06-14
  * 
  * @copyright Copyright (c) 2025
  */

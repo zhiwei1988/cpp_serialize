@@ -3,11 +3,12 @@
 #include <string>
 #include <cstddef>
 #include <tuple>
+#include <memory>
 #include "define_tuple_interface.h"
 #include "field_convert.h"
 #include "field_operator.h"
 #include "tlv_writer.h"
-#include <memory>
+#include "json_writer.h"
 
 using CharArray = char[10];
 
@@ -159,6 +160,12 @@ int main()
 
     // 新增：可变长数组TLV序列化演示
     DemoVariableLengthArrayTLV();
-    
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    JsonWriter jsonWriter(doc);
+    jsonWriter.SetNullAsRoot();
+
+    yyjson_mut_doc_free(doc);
+
     return 0;
 }
