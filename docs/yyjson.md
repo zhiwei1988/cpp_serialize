@@ -31,7 +31,13 @@ yyjson 提供了一套全面的 JSON 处理功能：
    - YYJSON_TYPE_OBJ: Object value
    - YYJSON_TYPE_RAW: Raw string value (used with specific read flags)
 3. 内存管理：该库对所有内存操作都使用内存分配器。用户可以提供自定义分配器，也可以使用内置的分配器（默认、池、动态）。
-4. SON 处理流程涉及读取（解析）、操作和写入（序列化）操作，每个操作都有可配置的选项。
+4. JSON 处理流程涉及读取（解析）、操作和写入（序列化）操作，每个操作都有可配置的选项。
+
+`yyjson_mut_doc` 是一个可变 JSON 文档的容器，负责管理整个 JSON 文档的生命周期和内存分配。
+
+`yyjson_mut_val` 是可变的 JSON 值，用于表示文档中的具体 JSON 元素（如对象、数组、字符串、数字等）。
+
+`yyjson_mut_doc` 包含一个指向根 `yyjson_mut_val` 的指针，代表整个 JSON 文档的根节点。 `yyjson_mut_doc` 负责管理所有 `yyjson_mut_val` 对象的内存分配：
 
 ## 使用方式
 
