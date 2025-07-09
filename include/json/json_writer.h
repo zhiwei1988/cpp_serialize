@@ -33,7 +33,8 @@ class JsonWriter {
     yyjson_mut_val* SetNullAsRoot() noexcept;
 
     template <typename T>
-    yyjson_mut_val* ValueAsRoot(const T& value) noexcept {
+    yyjson_mut_val* ValueAsRoot(const T& value) noexcept
+    {
         const auto val = FromBasicValue(value);
         if (val) {
             yyjson_mut_doc_set_root(m_doc, val);
@@ -41,7 +42,8 @@ class JsonWriter {
         return val;
     }
 
-    yyjson_mut_val* AddArrayToArray(yyjson_mut_val* array) noexcept {
+    yyjson_mut_val* AddArrayToArray(yyjson_mut_val* array) noexcept
+    {
         const auto val = yyjson_mut_arr(m_doc);
         if (val) {
             yyjson_mut_arr_add_val(array, val);
@@ -49,7 +51,8 @@ class JsonWriter {
         return val;
     }
 
-    yyjson_mut_val* AddArrayToObject(const std::string& key, yyjson_mut_val* object) noexcept {
+    yyjson_mut_val* AddArrayToObject(const std::string& key, yyjson_mut_val* object) noexcept
+    {
         const auto val = yyjson_mut_arr(m_doc);
         if (val) {
             yyjson_mut_obj_add(object, yyjson_mut_strcpy(m_doc, key.c_str()), val);
@@ -57,7 +60,8 @@ class JsonWriter {
         return val;
     }
 
-    yyjson_mut_val* AddObjectToArray(yyjson_mut_val* array) noexcept {
+    yyjson_mut_val* AddObjectToArray(yyjson_mut_val* array) noexcept
+    {
         const auto val = yyjson_mut_obj(m_doc);
         if (val) {
             yyjson_mut_arr_add_val(array, val);
@@ -65,8 +69,18 @@ class JsonWriter {
         return val;
     }
 
+    yyjson_mut_val *AddObjectToObject(const std::string &key, yyjson_mut_val *object) noexcept
+    {
+        const auto val = yyjson_mut_obj(m_doc);
+        if (val) {
+            yyjson_mut_obj_add(object, yyjson_mut_strcpy(m_doc, key.c_str()), val);
+        }
+        return val;
+    }
+
     template <typename T>
-    yyjson_mut_val* AddValueToArray(const T& value, yyjson_mut_val* array) noexcept {
+    yyjson_mut_val* AddValueToArray(const T& value, yyjson_mut_val* array) noexcept 
+    {
         const auto val = FromBasicValue(value);
         if (val) {
             yyjson_mut_arr_add_val(array, val);
@@ -75,7 +89,8 @@ class JsonWriter {
     }
 
     template <typename T>
-    yyjson_mut_val* AddValueToObject(const std::string& key, const T& value, yyjson_mut_val* object) noexcept {
+    yyjson_mut_val* AddValueToObject(const std::string& key, const T& value, yyjson_mut_val* object) noexcept 
+    {
         const auto val = FromBasicValue(value);
         if (val) {
             yyjson_mut_obj_add(object, yyjson_mut_strcpy(m_doc, key.c_str()), val);
@@ -83,25 +98,57 @@ class JsonWriter {
         return val;
     }
 
+    void SetCurrentObject(yyjson_mut_val* obj) noexcept { m_currentObject = obj; }
+
+    yyjson_mut_val* GetCurrentObject() const noexcept { return m_currentObject; }
+
+    template <typename T>
+    yyjson_mut_val* AddValueToCurrentObject(const std::string& key, const T& value) noexcept 
+    {
+        if (m_currentObject) {
+            return AddValueToObject(key, value, m_currentObject);
+        }
+        return nullptr;
+    }
+
+    yyjson_mut_val* AddArrayToCurrentObject(const std::string& key) noexcept
+    {
+        if (m_currentObject) {
+            return AddArrayToObject(key, m_currentObject);
+        }
+        return nullptr;
+    }
+
+    yyjson_mut_val* AddObjectToCurrentObject(const std::string& key) noexcept
+    {
+        if (m_currentObject) {
+            return AddObjectToObject(key, m_currentObject);
+        }
+        return nullptr;
+    }
+
   private:
     // 处理 std::string 类型
     template <typename T>
     typename std::enable_if<std::is_same<csrl::remove_cvref_t<T>, std::string>::value, yyjson_mut_val*>::type
-    FromBasicValue(const T& str) noexcept {
+    FromBasicValue(const T& str) noexcept 
+    {
         return yyjson_mut_strcpy(m_doc, str.c_str());
     }
 
     // 处理 bool 类型
     template <typename T>
     typename std::enable_if<std::is_same<csrl::remove_cvref_t<T>, bool>::value, yyjson_mut_val*>::type
-    FromBasicValue(const T& value) noexcept {
+    FromBasicValue(const T& value) noexcept 
+    {
         return yyjson_mut_bool(m_doc, value);
     }
 
     // 处理浮点数类型
     template <typename T>
     typename std::enable_if<std::is_floating_point<csrl::remove_cvref_t<T>>::value, yyjson_mut_val*>::type
-    FromBasicValue(const T& value) noexcept {
+    FromBasicValue(const T& value) noexcept 
+    {
         return yyjson_mut_real(m_doc, static_cast<double>(value));
     }
 
@@ -111,7 +158,8 @@ class JsonWriter {
                                 std::is_integral<csrl::remove_cvref_t<T>>::value &&
                                 !std::is_same<csrl::remove_cvref_t<T>, bool>::value,
                             yyjson_mut_val*>::type
-    FromBasicValue(const T& value) noexcept {
+    FromBasicValue(const T& value) noexcept 
+    {
         return yyjson_mut_uint(m_doc, static_cast<uint64_t>(value));
     }
 
@@ -120,10 +168,12 @@ class JsonWriter {
     typename std::enable_if<std::is_signed<csrl::remove_cvref_t<T>>::value &&
                                 std::is_integral<csrl::remove_cvref_t<T>>::value,
                             yyjson_mut_val*>::type
-    FromBasicValue(const T& value) noexcept {
+    FromBasicValue(const T& value) noexcept
+    {
         return yyjson_mut_int(m_doc, static_cast<int64_t>(value));
     }
 
     yyjson_mut_doc* m_doc;
+    yyjson_mut_val* m_currentObject;  // 当前正在操作的JSON对象
 };
 } // namespace csrl
