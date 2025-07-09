@@ -100,6 +100,23 @@
         return (s.FIELD_NAME(FIELD_PAIR));                                                                               \
     }
 
+// 辅助宏：用于字符串化字段名
+#define STRINGIFY_FIELD_NAME(FIELD_PAIR) STRINGIFY_FIELD_NAME_IMPL(FIELD_NAME(FIELD_PAIR))
+#define STRINGIFY_FIELD_NAME_IMPL(NAME) STRINGIFY_FIELD_NAME_IMPL2(NAME) // 保证FIELD_NAME(FIELD_PAIR)可以展开
+#define STRINGIFY_FIELD_NAME_IMPL2(NAME) #NAME
+
+namespace csrl {
+    template<typename StructType, std::size_t Index>
+    struct FieldNameGetter;
+}
+
+// 生成字段名获取器的宏
+#define GEN_FIELD_NAME_GETTER(INDEX, STRUCT_NAME, FIELD_PAIR)                                                          \
+    template <>                                                                                                        \
+    struct csrl::FieldNameGetter<STRUCT_NAME, INDEX> {                                                                 \
+        static const char* Get() { return STRINGIFY_FIELD_NAME(FIELD_PAIR); }                                          \
+    };
+
 namespace std {
     template<std::size_t n, typename T>
     decltype(auto) get(T& obj);
@@ -115,4 +132,5 @@ namespace std {
         template <> struct tuple_size<STRUCT_NAME> : public std::integral_constant<std::size_t, PP_NARG(__VA_ARGS__)> {};\
         EXPAND_ARGS_AS_FOR_EACH(STRUCT_NAME, GEN_TUPLE_ELEMENT_SPEC, __VA_ARGS__)                                          \
         EXPAND_ARGS_AS_FOR_EACH(STRUCT_NAME, GEN_GET_FUNCTION_SPEC, __VA_ARGS__) \
-    }                                                                                                                  
+    } \
+    EXPAND_ARGS_AS_FOR_EACH(STRUCT_NAME, GEN_FIELD_NAME_GETTER, __VA_ARGS__)                                                                                                                 
