@@ -99,7 +99,7 @@ struct FieldMappingRule<SrcPath, DstPath, void>
 
 // 特化内置类型字段自定义映射规则
 template <typename SrcPath, typename DstPath, typename Func>
-struct FieldMappingCustomRule : public FieldMappingRule<SrcPath, DstPath, Func>
+struct FieldMappingCustomRule
 {
     Func converter;
 
@@ -118,7 +118,7 @@ void StructFieldsConvert(SrcStruct& src, DstStruct& dst, const MappingRuleTuple&
 
 // 特化结构体类型字段映射规则
 template <typename SrcPath, typename DstPath, typename RuleTuple>
-struct StructFieldMappingRule : public FieldMappingRule<SrcPath, DstPath, void>
+struct StructFieldMappingRule
 {
     RuleTuple ruleTuple;
 
